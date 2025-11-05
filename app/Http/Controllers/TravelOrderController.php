@@ -38,17 +38,42 @@ class TravelOrderController extends Controller
             'destination' => 'required|string|max:255',
             'inclusive_dates' => 'required|string|max:255',
             'purpose' => 'required|string',
+            'fund_sources.selected' => 'required|in:general_fund,project_funds,others',
         ]);
 
         // Build the expenses JSON structure
+        $selectedFund = $request->input('fund_sources.selected');
+
         $expenses = [
             'fund_sources' => [
-                'general_fund' => $request->boolean('fund_sources.general_fund'),
-                'project_funds' => $request->boolean('fund_sources.project_funds'),
-                'others' => $request->input('fund_sources.others_text'),
+                'general_fund' => $selectedFund === 'general_fund',
+                'project_funds' => $selectedFund === 'project_funds',
+                'project_funds_text' => $selectedFund === 'project_funds' ? $request->input('fund_sources.project_funds_text') : null,
+                'others' => $selectedFund === 'others' ? $request->input('fund_sources.others_text') : null,
             ],
-            'categories' => $request->input('categories', []),
+            'categories' => [
+                'actual_enabled' => $request->boolean('categories.actual_enabled'),
+                'per_diem_enabled' => $request->boolean('categories.per_diem_enabled'),
+                'transportation_enabled' => $request->boolean('categories.transportation_enabled'),
+
+                'actual' => [
+                    'accommodation' => $request->boolean('categories.actual.accommodation'),
+                    'meals_food' => $request->boolean('categories.actual.meals_food'),
+                    'incidental_expenses' => $request->boolean('categories.actual.incidental_expenses'),
+                ],
+                'per_diem' => [
+                    'accommodation' => $request->boolean('categories.per_diem.accommodation'),
+                    'subsistence' => $request->boolean('categories.per_diem.subsistence'),
+                    'incidental_expenses' => $request->boolean('categories.per_diem.incidental_expenses'),
+                ],
+                'transportation' => [
+                    'official_vehicle' => $request->boolean('categories.transportation.official_vehicle'),
+                    'public_conveyance' => $request->input('categories.transportation.public_conveyance'),
+                ],
+                'others' => $request->input('categories.others'),
+            ],
         ];
+
 
         // Determine current series (year)
         $series = now()->year;
@@ -82,6 +107,9 @@ class TravelOrderController extends Controller
             'inclusive_dates' => $validated['inclusive_dates'],
             'purpose' => $validated['purpose'],
             'expenses' => $expenses,
+            'fund_sources.selected' => 'required|in:general_fund,project_funds,others',
+            'fund_sources.project_funds_text' => 'nullable|string|max:255',
+            'fund_sources.others_text' => 'nullable|string|max:255',
         ]);
 
         return redirect()
@@ -110,13 +138,19 @@ class TravelOrderController extends Controller
             'destination' => 'required|string|max:255',
             'inclusive_dates' => 'required|string|max:255',
             'purpose' => 'required|string',
+            'fund_sources.selected' => 'required|in:general_fund,project_funds,others',
+            'fund_sources.project_funds_text' => 'nullable|string|max:255',
+            'fund_sources.others_text' => 'nullable|string|max:255',
         ]);
+
+        $selectedFund = $request->input('fund_sources.selected');
 
         $expenses = [
             'fund_sources' => [
-                'general_fund' => $request->boolean('fund_sources.general_fund'),
-                'project_funds' => $request->boolean('fund_sources.project_funds'),
-                'others' => $request->input('fund_sources.others_text'),
+                'general_fund' => $selectedFund === 'general_fund',
+                'project_funds' => $selectedFund === 'project_funds',
+                'project_funds_text' => $selectedFund === 'project_funds' ? $request->input('fund_sources.project_funds_text') : null,
+                'others' => $selectedFund === 'others' ? $request->input('fund_sources.others_text') : null,
             ],
             'categories' => $request->input('categories', []),
         ];

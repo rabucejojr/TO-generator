@@ -245,7 +245,7 @@
 
         {{-- ACTUAL --}}
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Actual</td>
+            <td class="no-border"><span class="checkbox"></span> Actual {!! ($cat['actual_enabled'] ?? false) ? $mark : '&nbsp;' !!}</td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
         @foreach (['accommodation', 'meals_food', 'incidental_expenses'] as $item)
@@ -263,7 +263,7 @@
 
         {{-- PER DIEM --}}
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Per Diem</td>
+           <td class="no-border"><span class="checkbox"></span> Per Diem {!! ($cat['per_diem_enabled'] ?? false) ? $mark : '&nbsp;' !!}</td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
         @foreach (['accommodation', 'subsistence', 'incidental_expenses'] as $item)
@@ -281,7 +281,7 @@
 
         {{-- TRANSPORTATION --}}
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Transportation</td>
+           <td class="no-border"><span class="checkbox"></span> Transportation {!! ($cat['transportation_enabled'] ?? false) ? $mark : '&nbsp;' !!}</td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
         @foreach (['official_vehicle', 'public_conveyance'] as $t)
