@@ -90,14 +90,14 @@
             <td class="no-border bold" width="70%">
                 LOCAL TRAVEL ORDER No. {{ $travelOrder->travel_order_no ?? '__________' }}
             </td>
-        <td class="no-border bold" width="30%">
-            @php
-                $filingDate = $travelOrder->filing_date
-                    ? \Carbon\Carbon::parse($travelOrder->filing_date)->format('F j, Y')
-                    : '__________';
-            @endphp
-            Date: {{ $filingDate }}
-        </td>
+            <td class="no-border bold" width="30%">
+                @php
+                    $filingDate = $travelOrder->filing_date
+                        ? \Carbon\Carbon::parse($travelOrder->filing_date)->format('F j, Y')
+                        : '__________';
+                @endphp
+                Date: {{ $filingDate }}
+            </td>
         </tr>
         <tr>
             <td class="no-border bold" colspan="2">
@@ -242,10 +242,12 @@
                 {{ $fund['others'] ?? '________________' }}
             </td>
         </tr>
-
         {{-- ACTUAL --}}
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Actual {!! ($cat['actual_enabled'] ?? false) ? $mark : '&nbsp;' !!}</td>
+            <td class="no-border">
+                <span class="checkbox">{!! $cat['actual_enabled'] ?? false ? '☑' : '☐' !!}</span>
+                Actual
+            </td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
         @foreach (['accommodation', 'meals_food', 'incidental_expenses'] as $item)
@@ -254,7 +256,7 @@
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
                         <span class="cell-line">
-                            {!! $activeFund === $fundType && ($cat['actual'][$item] ?? false) ? $mark : '&nbsp;' !!}
+                            {!! $activeFund === $fundType && ($cat['actual'][$item] ?? false) ? '☑' : '&nbsp;' !!}
                         </span>
                     </td>
                 @endforeach
@@ -263,7 +265,10 @@
 
         {{-- PER DIEM --}}
         <tr>
-           <td class="no-border"><span class="checkbox"></span> Per Diem {!! ($cat['per_diem_enabled'] ?? false) ? $mark : '&nbsp;' !!}</td>
+            <td class="no-border">
+                <span class="checkbox">{!! $cat['per_diem_enabled'] ?? false ? '☑' : '☐' !!}</span>
+                Per Diem
+            </td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
         @foreach (['accommodation', 'subsistence', 'incidental_expenses'] as $item)
@@ -272,7 +277,7 @@
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
                         <span class="cell-line">
-                            {!! $activeFund === $fundType && ($cat['per_diem'][$item] ?? false) ? $mark : '&nbsp;' !!}
+                            {!! $activeFund === $fundType && ($cat['per_diem'][$item] ?? false) ? '☑' : '&nbsp;' !!}
                         </span>
                     </td>
                 @endforeach
@@ -281,7 +286,10 @@
 
         {{-- TRANSPORTATION --}}
         <tr>
-           <td class="no-border"><span class="checkbox"></span> Transportation {!! ($cat['transportation_enabled'] ?? false) ? $mark : '&nbsp;' !!}</td>
+            <td class="no-border">
+                <span class="checkbox">{!! $cat['transportation_enabled'] ?? false ? '☑' : '☐' !!}</span>
+                Transportation
+            </td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
         @foreach (['official_vehicle', 'public_conveyance'] as $t)
@@ -292,7 +300,7 @@
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
                         <span class="cell-line">
-                            {!! $activeFund === $fundType && ($cat['transportation'][$t] ?? false) ? $mark : '&nbsp;' !!}
+                            {!! $activeFund === $fundType && ($cat['transportation'][$t] ?? false) ? '☑' : '&nbsp;' !!}
                         </span>
                     </td>
                 @endforeach
@@ -301,18 +309,40 @@
 
         {{-- OTHERS --}}
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Others</td>
-            <td class="no-border" colspan="3">
-                <span class="cell-line">{{ $cat['others'] ?? '' }}</span>
+            <td class="no-border" style="vertical-align: middle; padding-top: 4px;">
+                <span class="checkbox">{!! $cat['others_enabled'] ?? false ? '☑' : '☐' !!}</span>
+                Others
+            </td>
+            <td class="no-border" colspan="3" style="padding: 0;">
+                <table style="width: 100%; border-collapse: collapse; margin-top: 0;">
+                    <tr>
+                        @foreach (['general', 'project', 'others'] as $fundType)
+                            <td class="no-border cell-center">
+                                <span class="cell-line" style="display: inline-block; width: 90%;">&nbsp;</span>
+                            </td>
+                        @endforeach
+                    </tr>
+                </table>
             </td>
         </tr>
+
     </table>
 
     {{-- REMARKS --}}
-    <p class="mt-3 bold">Remarks / Special Instructions: {{ $travelOrder->remarks }}</p>
+    {{-- <p class="mt-3 bold">Remarks / Special Instructions: {{ $travelOrder->remarks }}</p> --}}
+    <p class="mt-3 bold">
+        Remarks / Special Instructions:
+        @if (!empty($travelOrder->remarks))
+            {{ $travelOrder->remarks }}
+        @else
+            <span style="display: inline-block; border-bottom: 1px solid #000; width: 70%; margin-left: 5px;">&nbsp;</span>
+        @endif
+    </p>
     <p class="text-justify">
         A report of your travel must be submitted to the Agency Head/Supervising Official within 7 days of completion of
-        travel. Liquidation of cash advance should be in accordance with Executive Order No. 77, s. 2019.
+        travel, liquidation of cash advance should be in accordance with Executive Order No. 77, series of 2019: Prescribing
+        Rules and Regulations, and Rates of Expenses and Allowances for Official Local and Foreign Travels of Government
+        Personnel.
     </p>
 
     {{-- SIGNATURE --}}
