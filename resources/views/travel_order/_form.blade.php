@@ -89,62 +89,36 @@
 <div class="mt-8">
     <h3 class="text-md font-semibold text-gray-800 mb-3">Fund Source</h3>
     @php
-        $fundSource = $travelOrder->expenses['fund_source'] ?? '';
-        $fundDetails = $travelOrder->expenses['fund_details'] ?? '';
+        $fund = $travelOrder->expenses['fund_sources'] ?? [];
     @endphp
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         {{-- General Fund --}}
         <label class="flex items-center space-x-2">
-            <input type="radio" name="fund_source" value="General Fund"
-                {{ old('fund_source', $fundSource) === 'General Fund' ? 'checked' : '' }}>
+            <input type="checkbox" name="fund_sources[general_fund]" value="1"
+                   {{ old('fund_sources.general_fund', $fund['general_fund'] ?? false) ? 'checked' : '' }}>
             <span>General Fund</span>
         </label>
 
         {{-- Project Funds --}}
         <label class="flex items-center space-x-2">
-            <input type="radio" name="fund_source" value="Project Funds"
-                {{ old('fund_source', $fundSource) === 'Project Funds' ? 'checked' : '' }}>
-            <span>Project Funds (Specify)</span>
+            <input type="checkbox" name="fund_sources[project_funds]" value="1"
+                   {{ old('fund_sources.project_funds', $fund['project_funds'] ?? false) ? 'checked' : '' }}>
+            <span>Project Funds</span>
         </label>
 
         {{-- Others --}}
         <label class="flex items-center space-x-2">
-            <input type="radio" name="fund_source" value="Others"
-                {{ old('fund_source', $fundSource) === 'Others' ? 'checked' : '' }}>
+            <input type="checkbox" name="fund_sources[others]" value="1"
+                   {{ !empty($fund['others']) ? 'checked' : '' }}>
             <span>Others (Specify)</span>
         </label>
     </div>
 
-    {{-- Dynamic text area for details --}}
-    <div id="fund-details-wrapper"
-        class="mt-3 {{ in_array(old('fund_source', $fundSource), ['Project Funds', 'Others']) ? '' : 'hidden' }}">
-        <textarea name="fund_details" id="fund-details" placeholder="Enter project name or funding details..."
-            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">{{ old('fund_details', $fundDetails ?? '') }}</textarea>
-    </div>
+    <input type="text" name="fund_sources[others_text]" placeholder="If Others, specify..."
+           class="mt-2 w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+           value="{{ old('fund_sources.others_text', $fund['others'] ?? '') }}">
 </div>
-
-@push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const radios = document.querySelectorAll('input[name="fund_source"]');
-            const wrapper = document.getElementById('fund-details-wrapper');
-            const textArea = document.getElementById('fund-details');
-
-            radios.forEach(radio => {
-                radio.addEventListener('change', () => {
-                    if (radio.value === 'Project Funds' || radio.value === 'Others') {
-                        wrapper.classList.remove('hidden');
-                    } else {
-                        wrapper.classList.add('hidden');
-                        textArea.value = '';
-                    }
-                });
-            });
-        });
-    </script>
-@endpush
-
 
 {{-- TRAVEL EXPENSES --}}
 <div class="mt-10">
@@ -159,15 +133,9 @@
 
     {{-- Actual --}}
     <div class="mb-4">
-        <label class="flex items-center space-x-2">
-            <input type="checkbox" name="expenses[categories][actual][enabled]" value="1" id="actual-checkbox"
-                {{ old('expenses.categories.actual.enabled', isset($cat['actual']) && count(array_filter($cat['actual'])) > 0) ? 'checked' : '' }}>
-            <span class="font-semibold text-gray-700">Actual</span>
-        </label>
-
-        <div id="actual-options"
-            class="ml-6 mt-2 space-y-2 {{ old('expenses.categories.actual.enabled', isset($cat['actual']) && count(array_filter($cat['actual'])) > 0) ? '' : 'hidden' }}">
-            @foreach (['accommodation' => 'Accommodation', 'meals_food' => 'Meals / Food', 'incidental_expenses' => 'Incidental Expenses'] as $key => $label)
+        <p class="font-semibold text-gray-700">Actual:</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+            @foreach (['accommodation', 'meals_food', 'incidental_expenses'] as $item)
                 <label class="flex items-center space-x-2">
                     <input type="checkbox" name="expenses[categories][actual][{{ $key }}]" value="1"
                         {{ old("expenses.categories.actual.$key", $cat['actual'][$key] ?? false) ? 'checked' : '' }}>
@@ -179,15 +147,9 @@
 
     {{-- Per Diem --}}
     <div class="mb-4">
-        <label class="flex items-center space-x-2">
-            <input type="checkbox" name="expenses[categories][per_diem][enabled]" value="1" id="perdiem-checkbox"
-                {{ old('expenses.categories.per_diem.enabled', isset($cat['per_diem']) && count(array_filter($cat['per_diem'])) > 0) ? 'checked' : '' }}>
-            <span class="font-semibold text-gray-700">Per Diem</span>
-        </label>
-
-        <div id="perdiem-options"
-            class="ml-6 mt-2 space-y-2 {{ old('expenses.categories.per_diem.enabled', isset($cat['per_diem']) && count(array_filter($cat['per_diem'])) > 0) ? '' : 'hidden' }}">
-            @foreach (['accommodation' => 'Accommodation', 'subsistence' => 'Subsistence', 'incidental_expenses' => 'Incidental Expenses'] as $key => $label)
+        <p class="font-semibold text-gray-700">Per Diem:</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+            @foreach (['accommodation', 'subsistence', 'incidental_expenses'] as $item)
                 <label class="flex items-center space-x-2">
                     <input type="checkbox" name="expenses[categories][per_diem][{{ $key }}]" value="1"
                         {{ old("expenses.categories.per_diem.$key", $cat['per_diem'][$key] ?? false) ? 'checked' : '' }}>
@@ -199,76 +161,22 @@
 
     {{-- Transportation --}}
     <div class="mb-4">
-        <label class="flex items-center space-x-2">
-            <input type="checkbox" name="expenses[categories][transportation][enabled]" value="1"
-                id="transportation-checkbox"
-                {{ old('expenses.categories.transportation.enabled', isset($cat['transportation']) && count(array_filter($cat['transportation'])) > 0) ? 'checked' : '' }}>
-            <span class="font-semibold text-gray-700">Transportation</span>
-        </label>
-
-        <div id="transportation-options"
-            class="ml-6 mt-2 space-y-2 {{ old('expenses.categories.transportation.enabled', isset($cat['transportation']) && count(array_filter($cat['transportation'])) > 0) ? '' : 'hidden' }}">
-            @foreach (['official_vehicle' => 'Official Vehicle', 'public_conveyance' => 'Public Conveyance (Specify)'] as $key => $label)
-                <div>
-                    <label class="flex items-center space-x-2">
-                        <input type="checkbox" name="expenses[categories][transportation][{{ $key }}]" value="1"
-                            {{ old("expenses.categories.transportation.$key", $cat['transportation'][$key] ?? false) ? 'checked' : '' }}>
-                        <span>{{ $label }}</span>
-                    </label>
-                    @if ($key === 'public_conveyance')
-                        <input type="text" name="expenses[categories][transportation][public_conveyance_text]"
-                            placeholder="Specify public conveyance"
-                            class="mt-1 w-full border border-gray-300 rounded-md px-3 py-1 text-sm"
-                            value="{{ old('expenses.categories.transportation.public_conveyance_text', $cat['transportation']['public_conveyance_text'] ?? '') }}">
-                    @endif
-                </div>
-            @endforeach
+        <p class="font-semibold text-gray-700">Transportation:</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="categories[transportation][official_vehicle]" value="1"
+                       {{ old('categories.transportation.official_vehicle', $cat['transportation']['official_vehicle'] ?? false) ? 'checked' : '' }}>
+                <span>Official Vehicle</span>
+            </label>
+            <div>
+                <label class="block text-sm">Public Conveyance (Specify)</label>
+                <input type="text" name="categories[transportation][public_conveyance]"
+                       class="w-full border border-gray-300 rounded-md px-3 py-1 text-sm"
+                       value="{{ old('categories.transportation.public_conveyance', $cat['transportation']['public_conveyance'] ?? '') }}">
+            </div>
         </div>
     </div>
 </div>
-
-
-@push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sections = [{
-                    main: '#actual-checkbox',
-                    sub: '#actual-options'
-                },
-                {
-                    main: '#perdiem-checkbox',
-                    sub: '#perdiem-options'
-                },
-                {
-                    main: '#transportation-checkbox',
-                    sub: '#transportation-options'
-                },
-            ];
-
-            sections.forEach(({
-                main,
-                sub
-            }) => {
-                const mainCheckbox = document.querySelector(main);
-                const subSection = document.querySelector(sub);
-
-                mainCheckbox.addEventListener('change', () => {
-                    if (mainCheckbox.checked) {
-                        subSection.classList.remove('hidden');
-                    } else {
-                        subSection.classList.add('hidden');
-                        subSection.querySelectorAll('input[type="checkbox"], input[type="text"]')
-                            .forEach(i => {
-                                if (i.type === 'checkbox') i.checked = false;
-                                if (i.type === 'text') i.value = '';
-                            });
-                    }
-                });
-            });
-        });
-    </script>
-@endpush
-
 
 {{-- Submit --}}
 <div class="mt-10 flex justify-end gap-3">

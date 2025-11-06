@@ -253,16 +253,9 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             </td>
         </tr>
 
-
-
-        {{-- ACTUAL EXPENSES --}}
+        {{-- ACTUAL --}}
         <tr>
-            <td class="no-border">
-                <span class="checkbox">
-                    {!! $travelOrder->isExpenseChecked('actual') ? $mark : '&nbsp;' !!}
-                </span>
-                Actual
-            </td>
+            <td class="no-border"><span class="checkbox"></span> Actual</td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
 
@@ -279,7 +272,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
                         <span class="cell-line">
-                            {!! $activeFund === $fundType && $travelOrder->isExpenseChecked('actual', $key) ? $mark : '&nbsp;' !!}
+                            {!! $activeFund === $fundType && ($cat['actual'][$item] ?? false) ? $mark : '&nbsp;' !!}
                         </span>
                     </td>
                 @endforeach
@@ -288,12 +281,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
 
         {{-- PER DIEM --}}
         <tr>
-            <td class="no-border">
-                <span class="checkbox">
-                    {!! $travelOrder->isExpenseChecked('per_diem') ? $mark : '&nbsp;' !!}
-                </span>
-                Per Diem
-            </td>
+            <td class="no-border"><span class="checkbox"></span> Per Diem</td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
 
@@ -310,7 +298,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
                         <span class="cell-line">
-                            {!! $activeFund === $fundType && $travelOrder->isExpenseChecked('per_diem', $key) ? $mark : '&nbsp;' !!}
+                            {!! $activeFund === $fundType && ($cat['per_diem'][$item] ?? false) ? $mark : '&nbsp;' !!}
                         </span>
                     </td>
                 @endforeach
@@ -319,12 +307,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
 
         {{-- TRANSPORTATION --}}
         <tr>
-            <td class="no-border">
-                <span class="checkbox">
-                    {!! $travelOrder->isExpenseChecked('transportation') ? $mark : '&nbsp;' !!}
-                </span>
-                Transportation
-            </td>
+            <td class="no-border"><span class="checkbox"></span> Transportation</td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
 
@@ -350,28 +333,27 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
                         <span class="cell-line">
-                            {!! $activeFund === $fundType && $travelOrder->isExpenseChecked('transportation', $key) ? $mark : '&nbsp;' !!}
+                            {!! $activeFund === $fundType && ($cat['transportation'][$t] ?? false) ? $mark : '&nbsp;' !!}
                         </span>
                     </td>
                 @endforeach
             </tr>
         @endforeach
 
+        {{-- OTHERS --}}
+        <tr>
+            <td class="no-border"><span class="checkbox"></span> Others</td>
+            <td class="no-border" colspan="3">
+                <span class="cell-line">{{ $cat['others'] ?? '' }}</span>
+            </td>
+        </tr>
     </table>
 
 
 
 
     {{-- REMARKS --}}
-    <p class="mt-3 bold">
-        Remarks / Special Instructions:
-        @if (!empty($travelOrder->remarks))
-            {{ $travelOrder->remarks }}
-        @else
-            <span style="display:inline-block; min-width: 450px; border-bottom: 1px solid #000;">&nbsp;</span>
-        @endif
-    </p>
-
+    <p class="mt-3 bold">Remarks / Special Instructions: {{ $travelOrder->remarks }}</p>
     <p class="text-justify">
         A report of your travel must be submitted to the Agency Head/Supervising Official within 7 days of completion of
         travel, liquidation of cash advance should be in accordance with Executive Order No. 77, series of 2019: Prescribing
