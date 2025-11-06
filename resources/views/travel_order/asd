@@ -1,0 +1,126 @@
+@php
+    // --- Normalize and extract expenses data ---
+    $exp = $travelOrder->expenses ?? [];
+    if (is_string($exp)) {
+        $decoded = json_decode($exp, true);
+        $exp = is_array($decoded) ? $decoded : [];
+    }
+
+    $fund = $exp['fund_sources'] ?? [];
+    $cat = $exp['categories'] ?? [];
+
+    // --- Determine which fund source is active ---
+    $activeFund = null;
+    foreach (['general_fund' => 'general', 'project_funds' => 'project', 'others' => 'others'] as $key => $alias) {
+        if (!empty($fund[$key])) {
+            $activeFund = $alias;
+            break;
+        }
+    }
+
+    $mark = '☑'; // Unicode checkbox for better PDF rendering
+    $empty = '&nbsp;';
+
+    // --- Utility function: render a check mark if condition is true ---
+    $check = fn($cond) => in_array($cond, [true, '1', 1, 'on'], true) ? $mark : $empty;
+
+    // --- Categories for each section ---
+    $actualItems = ['accommodation' => 'Accommodation', 'meals_food' => 'Meals / Food', 'incidental_expenses' => 'Incidental Expenses'];
+    $perDiemItems = ['accommodation' => 'Accommodation', 'subsistence' => 'Subsistence', 'incidental_expenses' => 'Incidental Expenses'];
+    $transportItems = ['official_vehicle' => 'Official Vehicle', 'public_conveyance' => 'Public Conveyance (Airplane, Bus, Taxi)'];
+    $fundTypes = ['general', 'project', 'others'];
+@endphp
+
+<table class="no-border" style="margin-bottom:10px; width:100%; border-collapse:collapse;">
+    <tr class="bold center">
+        <th class="no-border" width="30%">Travel Expenses to be incurred</th>
+        <th class="no-border" colspan="3">Appropriate / Fund to which travel expenses would be charged to:</th>
+    </tr>
+
+    {{-- FUND HEADERS --}}
+    <tr class="center">
+        <td class="no-border"></td>
+        <td class="no-border fund-header">
+            ( {!! $check($fund['general_fund'] ?? false) !!} ) General Fund
+        </td>
+        <td class="no-border fund-header">
+            ( {!! $check($fund['project_funds'] ?? false) !!} ) Project Funds
+        </td>
+        <td class="no-border fund-header">
+            ( {!! !empty($fund['others']) ? $mark : $empty !!} ) Others:
+            {{ $fund['others'] ?? '________________' }}
+        </td>
+    </tr>
+
+    {{-- --- ACTUAL --- --}}
+    <tr>
+        <td class="no-border bold">
+            <span class="checkbox">{!! $check($cat['actual_enabled'] ?? false) !!}</span> Actual
+        </td>
+        <td class="no-border" colspan="3">&nbsp;</td>
+    </tr>
+    @foreach ($actualItems as $key => $label)
+        <tr>
+            <td class="no-border subitem">{{ $label }}</td>
+            @foreach ($fundTypes as $fundType)
+                <td class="no-border cell-center">
+                    {!! $activeFund === $fundType && ($cat['actual'][$key] ?? false) ? $mark : $empty !!}
+                </td>
+            @endforeach
+        </tr>
+    @endforeach
+
+    {{-- --- PER DIEM --- --}}
+    <tr>
+        <td class="no-border bold">
+            <span class="checkbox">{!! $check($cat['per_diem_enabled'] ?? false) !!}</span> Per Diem
+        </td>
+        <td class="no-border" colspan="3">&nbsp;</td>
+    </tr>
+    @foreach ($perDiemItems as $key => $label)
+        <tr>
+            <td class="no-border subitem">{{ $label }}</td>
+            @foreach ($fundTypes as $fundType)
+                <td class="no-border cell-center">
+                    {!! $activeFund === $fundType && ($cat['per_diem'][$key] ?? false) ? $mark : $empty !!}
+                </td>
+            @endforeach
+        </tr>
+    @endforeach
+
+    {{-- --- TRANSPORTATION --- --}}
+    <tr>
+        <td class="no-border bold">
+            <span class="checkbox">{!! $check($cat['transportation_enabled'] ?? false) !!}</span> Transportation
+        </td>
+        <td class="no-border" colspan="3">&nbsp;</td>
+    </tr>
+    @foreach ($transportItems as $key => $label)
+        <tr>
+            <td class="no-border subitem">{{ $label }}</td>
+            @foreach ($fundTypes as $fundType)
+                <td class="no-border cell-center">
+                    {!! $activeFund === $fundType && ($cat['transportation'][$key] ?? false) ? $mark : $empty !!}
+                </td>
+            @endforeach
+        </tr>
+    @endforeach
+
+    {{-- --- OTHERS --- --}}
+    <tr>
+        <td class="no-border bold">
+            <span class="checkbox">{!! $check($cat['others_enabled'] ?? false) !!}</span> Others
+        </td>
+        <td class="no-border" colspan="3" style="padding:0;">
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    @foreach ($fundTypes as $fundType)
+                        <td class="no-border cell-center">
+                            <span class="cell-line" style="display:inline-block; width:90%;">&nbsp;</span>
+                        </td>
+                    @endforeach
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>

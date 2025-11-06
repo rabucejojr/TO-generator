@@ -50,12 +50,8 @@
             border: 1px solid #000;
             margin-right: 5px;
             text-align: center;
-            font-size: 9pt;
+            /* font-size: 9pt; */
             line-height: 10pt;
-        }
-
-        .fund-header {
-            font-size: 8pt;
         }
 
         .subitem {
@@ -82,6 +78,11 @@
             margin: 0;
             line-height: 1.2;
         }
+
+        th.underline {
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
     </style>
 
     {{-- HEADER --}}
@@ -90,14 +91,14 @@
             <td class="no-border bold" width="70%">
                 LOCAL TRAVEL ORDER No. {{ $travelOrder->travel_order_no ?? '__________' }}
             </td>
-        <td class="no-border bold" width="30%">
-            @php
-                $filingDate = $travelOrder->filing_date
-                    ? \Carbon\Carbon::parse($travelOrder->filing_date)->format('F j, Y')
-                    : '__________';
-            @endphp
-            Date: {{ $filingDate }}
-        </td>
+            <td class="no-border bold" width="30%">
+                @php
+                    $filingDate = $travelOrder->filing_date
+                        ? \Carbon\Carbon::parse($travelOrder->filing_date)->format('F j, Y')
+                        : '__________';
+                @endphp
+                Date: {{ $filingDate }}
+            </td>
         </tr>
         <tr>
             <td class="no-border bold" colspan="2">
@@ -107,64 +108,40 @@
     </table>
 
     {{-- TRAVELERS --}}
-    <p class="mt-3 bold">Authority to Travel is hereby granted to:</p>
-
+    <p class="mt-3 bold" style="padding-bottom: 15px;">Authority to Travel is hereby granted to:</p>
     @php
-        // Normalize the name/traveler data (handles arrays, JSON strings, and single fields)
+        // Normalize traveler data (array of { name, position, agency })
         $travelers = $travelOrder->name;
 
+        // If stored as JSON string, decode it
         if (is_string($travelers)) {
             $decoded = json_decode($travelers, true);
             $travelers = is_array($decoded) ? $decoded : [];
         }
 
-        // If name field is empty but position/division_agency exist (old data), fill it
-        if (empty($travelers) && (!empty($travelOrder->position) || !empty($travelOrder->division_agency))) {
-            $travelers = [
-                [
-                    'name' => $travelOrder->position ?? 'N/A',
-                    'position' => $travelOrder->position ?? null,
-                    'division_agency' => $travelOrder->division_agency ?? null,
-                ],
-            ];
-        }
-
-        // Normalize structure
-        $normalizedTravelers = collect($travelers)->map(function ($item) use ($travelOrder) {
-            if (is_array($item)) {
-                return [
-                    'name' => $item['name'] ?? ($travelOrder->name ?? null),
-                    'position' => $item['position'] ?? ($travelOrder->position ?? null),
-                    'division_agency' => $item['division_agency'] ?? ($travelOrder->division_agency ?? null),
-                ];
-            } elseif (is_string($item)) {
-                // Handle simple string names
-                return [
-                    'name' => $item,
-                    'position' => $travelOrder->position ?? null,
-                    'division_agency' => $travelOrder->division_agency ?? null,
-                ];
-            }
-            return [
-                'name' => $travelOrder->name ?? null,
-                'position' => $travelOrder->position ?? null,
-                'division_agency' => $travelOrder->division_agency ?? null,
+        // Ensure it's always a collection of arrays
+$normalizedTravelers = collect($travelers)->map(function ($t) {
+    return [
+        'name' => $t['name'] ?? 'N/A',
+        'position' => $t['position'] ?? '—',
+        'agency' => $t['agency'] ?? '—',
             ];
         });
     @endphp
 
-    <table class="no-border mb-2">
+
+    <table class="no-border mb-2" style="padding-bottom: 20px;">
         <tr class="bold center">
-            <th class="no-border" width="33%">NAME</th>
-            <th class="no-border" width="33%">POSITION</th>
-            <th class="no-border" width="34%">DIVISION / AGENCY</th>
+            <th class="no-border underline" width="33%">NAME</th>
+            <th class="no-border underline" width="33%">POSITION</th>
+            <th class="no-border underline" width="34%">DIVISION / AGENCY</th>
         </tr>
 
         @forelse ($normalizedTravelers as $traveler)
             <tr>
                 <td class="no-border center">{{ $traveler['name'] ?: '________________________' }}</td>
                 <td class="no-border center">{{ $traveler['position'] ?: '________________________' }}</td>
-                <td class="no-border center">{{ $traveler['division_agency'] ?: '________________________' }}</td>
+                <td class="no-border center">{{ $traveler['agency'] ?: '________________________' }}</td>
             </tr>
         @empty
             <tr>
@@ -190,39 +167,43 @@
         $destinationList = collect($destinations)->filter()->implode(', ');
     @endphp
 
-    <table class="no-border mb-2">
+    <table class="no-border mb-2" style="padding-bottom: 20px;">
         <tr class="bold center">
-            <th class="no-border" width="33%">Destination</th>
-            <th class="no-border" width="33%">Inclusive Date/s of Travel</th>
-            <th class="no-border" width="34%">Purpose(s) of the Travel</th>
+            <th class="no-border underline" width="33%">Destination</th>
+            <th class="no-border underline" width="33%">Inclusive Date/s of Travel</th>
+            <th class="no-border underline" width="34%">Purpose(s) of the Travel</th>
         </tr>
         <tr class="center">
             <td class="no-border" height="30">{{ $travelOrder->destination ?: '________________' }}</td>
             <td class="no-border">{{ $travelOrder->inclusive_dates ?: '________________' }}</td>
-            <td class="no-border" style="text-align: justify;">{{ $travelOrder->purpose ?: '________________' }}</td>
+            <td class="no-border">{{ $travelOrder->purpose ?: '________________' }}</td>
         </tr>
     </table>
 
+    {{-- TRAVEL EXPENSES --}}
 
-    {{-- EXPENSES --}}
+    {{-- <pre>
+    Fund Source: {{ $fundSource ?? 'null' }}
+    Active Fund: {{ $activeFund ?? 'null' }}
+    </pre> --}}
+
     @php
-        $exp = $travelOrder->expenses ?? [];
-        $fund = $exp['fund_sources'] ?? [];
-        $cat = $exp['categories'] ?? [];
-
-        $activeFund = null;
-        if (!empty($fund['general_fund'])) {
-            $activeFund = 'general';
-        } elseif (!empty($fund['project_funds'])) {
-            $activeFund = 'project';
-        } elseif (!empty($fund['others'])) {
-            $activeFund = 'others';
-        }
-
         $mark = 'X';
+
+        // Top-level fund details and source
+        $fundSource = strtolower(trim($travelOrder->fund_source ?? ''));
+        $fundDetails = $travelOrder->fund_details ?? null;
+
+        // Flexible mapping — handles "general fund", "project", "others", etc.
+        $activeFund = match (true) {
+            str_contains($fundSource, 'general') => 'general',
+            str_contains($fundSource, 'project') => 'project',
+            str_contains($fundSource, 'other') => 'others',
+            default => null,
+        };
     @endphp
 
-    <table class="no-border" style="margin-bottom:10px;">
+    <table class="no-border" style="margin-bottom:10px; width:100%;">
         <tr class="bold center">
             <th class="no-border" width="30%">Travel Expenses to be incurred</th>
             <th class="no-border" colspan="3">Appropriate / Fund to which travel expenses would be charged to:</th>
@@ -230,31 +211,75 @@
 
         {{-- FUND HEADERS --}}
         <tr class="center">
-            <td class="no-border">&nbsp;</td>
-            <td class="no-border fund-header">
-                ( {!! $fund['general_fund'] ?? false ? $mark : '&nbsp;' !!} ) General Fund
+            <td class="no-border"></td>
+
+            {{-- General Fund --}}
+            <td class="no-border fund-header" style="vertical-align: top;">
+                <span class="checkbox">
+                    {!! strtolower($fundSource) === 'general fund' || strtolower($fundSource) === 'general' ? $mark : '&nbsp;' !!}
+                </span>
+                General Fund
+                @if (!empty($fundDetails) && (strtolower($fundSource) === 'general fund' || strtolower($fundSource) === 'general'))
+                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
+                        ({{ strtoupper($fundDetails) }})
+                    </div>
+                @endif
             </td>
-            <td class="no-border fund-header">
-                ( {!! $fund['project_funds'] ?? false ? $mark : '&nbsp;' !!} ) Project Funds
+
+            {{-- Project Funds --}}
+            <td class="no-border fund-header" style="vertical-align: top;">
+                <span class="checkbox">
+                    {!! strtolower($fundSource) === 'project funds' || strtolower($fundSource) === 'project' ? $mark : '&nbsp;' !!}
+                </span>
+                Project Funds
+                @if (!empty($fundDetails) && (strtolower($fundSource) === 'project funds' || strtolower($fundSource) === 'project'))
+                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
+                        ({{ strtoupper($fundDetails) }})
+                    </div>
+                @endif
             </td>
-            <td class="no-border fund-header">
-                ( {!! !empty($fund['others']) ? $mark : '&nbsp;' !!} ) Others:
-                {{ $fund['others'] ?? '________________' }}
+
+            {{-- Others --}}
+            <td class="no-border fund-header" style="vertical-align: top;">
+                <span class="checkbox">
+                    {!! strtolower($fundSource) === 'others' || strtolower($fundSource) === 'other' ? $mark : '&nbsp;' !!}
+                </span>
+                Others
+                @if (!empty($fundDetails) && (strtolower($fundSource) === 'others' || strtolower($fundSource) === 'other'))
+                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
+                        ({{ strtoupper($fundDetails) }})
+                    </div>
+                @endif
             </td>
         </tr>
 
-        {{-- ACTUAL --}}
+
+
+        {{-- ACTUAL EXPENSES --}}
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Actual</td>
+            <td class="no-border">
+                <span class="checkbox">
+                    {!! $travelOrder->isExpenseChecked('actual') ? $mark : '&nbsp;' !!}
+                </span>
+                Actual
+            </td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
-        @foreach (['accommodation', 'meals_food', 'incidental_expenses'] as $item)
+
+        @php
+            $actualItems = [
+                'accommodation' => 'Accommodation',
+                'meals_food' => 'Meals / Food',
+                'incidental_expenses' => 'Incidental Expenses',
+            ];
+        @endphp
+        @foreach ($actualItems as $key => $label)
             <tr>
-                <td class="no-border subitem">{{ ucfirst(str_replace('_', ' ', $item)) }}</td>
+                <td class="no-border subitem">{{ $label }}</td>
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
                         <span class="cell-line">
-                            {!! $activeFund === $fundType && ($cat['actual'][$item] ?? false) ? $mark : '&nbsp;' !!}
+                            {!! $activeFund === $fundType && $travelOrder->isExpenseChecked('actual', $key) ? $mark : '&nbsp;' !!}
                         </span>
                     </td>
                 @endforeach
@@ -263,16 +288,29 @@
 
         {{-- PER DIEM --}}
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Per Diem</td>
+            <td class="no-border">
+                <span class="checkbox">
+                    {!! $travelOrder->isExpenseChecked('per_diem') ? $mark : '&nbsp;' !!}
+                </span>
+                Per Diem
+            </td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
-        @foreach (['accommodation', 'subsistence', 'incidental_expenses'] as $item)
+
+        @php
+            $perDiemItems = [
+                'accommodation' => 'Accommodation',
+                'subsistence' => 'Subsistence',
+                'incidental_expenses' => 'Incidental Expenses',
+            ];
+        @endphp
+        @foreach ($perDiemItems as $key => $label)
             <tr>
-                <td class="no-border subitem">{{ ucfirst(str_replace('_', ' ', $item)) }}</td>
+                <td class="no-border subitem">{{ $label }}</td>
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
                         <span class="cell-line">
-                            {!! $activeFund === $fundType && ($cat['per_diem'][$item] ?? false) ? $mark : '&nbsp;' !!}
+                            {!! $activeFund === $fundType && $travelOrder->isExpenseChecked('per_diem', $key) ? $mark : '&nbsp;' !!}
                         </span>
                     </td>
                 @endforeach
@@ -281,38 +319,64 @@
 
         {{-- TRANSPORTATION --}}
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Transportation</td>
+            <td class="no-border">
+                <span class="checkbox">
+                    {!! $travelOrder->isExpenseChecked('transportation') ? $mark : '&nbsp;' !!}
+                </span>
+                Transportation
+            </td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
-        @foreach (['official_vehicle', 'public_conveyance'] as $t)
+
+        @php
+            // Safely read the optional note (text field)
+            $transportText = data_get($travelOrder->expenses, 'categories.transportation.public_conveyance_text');
+            // NOTE: If you want a checkbox for public conveyance, prefer a boolean key like 'public_conveyance'
+            $transportItems = [
+                'official_vehicle' => 'Official Vehicle',
+                // using 'public_conveyance_text' will only mark X if the note has a non-empty value
+                'public_conveyance_text' => 'Public Conveyance (Airplane, Bus, Taxi)',
+            ];
+        @endphp
+
+        @foreach ($transportItems as $key => $label)
             <tr>
                 <td class="no-border subitem">
-                    {{ $t === 'official_vehicle' ? 'Official Vehicle' : 'Public Conveyance (Airplane, Bus, Taxi)' }}
+                    {{ $label }}
+                    @if ($key === 'public_conveyance_text' && $transportText)
+                        ({{ $transportText }})
+                    @endif
                 </td>
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
                         <span class="cell-line">
-                            {!! $activeFund === $fundType && ($cat['transportation'][$t] ?? false) ? $mark : '&nbsp;' !!}
+                            {!! $activeFund === $fundType && $travelOrder->isExpenseChecked('transportation', $key) ? $mark : '&nbsp;' !!}
                         </span>
                     </td>
                 @endforeach
             </tr>
         @endforeach
 
-        {{-- OTHERS --}}
-        <tr>
-            <td class="no-border"><span class="checkbox"></span> Others</td>
-            <td class="no-border" colspan="3">
-                <span class="cell-line">{{ $cat['others'] ?? '' }}</span>
-            </td>
-        </tr>
     </table>
 
+
+
+
     {{-- REMARKS --}}
-    <p class="mt-3 bold">Remarks / Special Instructions: {{ $travelOrder->remarks }}</p>
+    <p class="mt-3 bold">
+        Remarks / Special Instructions:
+        @if (!empty($travelOrder->remarks))
+            {{ $travelOrder->remarks }}
+        @else
+            <span style="display:inline-block; min-width: 450px; border-bottom: 1px solid #000;">&nbsp;</span>
+        @endif
+    </p>
+
     <p class="text-justify">
         A report of your travel must be submitted to the Agency Head/Supervising Official within 7 days of completion of
-        travel. Liquidation of cash advance should be in accordance with Executive Order No. 77, s. 2019.
+        travel, liquidation of cash advance should be in accordance with Executive Order No. 77, series of 2019: Prescribing
+        Rules and Regulations, and Rates of Expenses and Allowances for Official Local and Foreign Travels of Government
+        Personnel.
     </p>
 
     {{-- SIGNATURE --}}
