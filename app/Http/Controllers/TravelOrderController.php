@@ -40,7 +40,7 @@ class TravelOrderController extends Controller
     public function store(Request $request, TravelOrder $travelOrder)
 {
 
-    dd($travelOrder->toArray());
+    // dd($travelOrder->toArray());
 
     $validated = $request->validate([
         'filing_date' => 'required|date',
@@ -176,7 +176,7 @@ class TravelOrderController extends Controller
         ]);
 
 
-        dd($travelOrder->toArray());
+        // dd($travelOrder->toArray());
         // dd($request->fund_source, $request->fund_details);
 
         return redirect()
