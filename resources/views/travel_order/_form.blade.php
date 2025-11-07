@@ -85,43 +85,51 @@
     </div>
 </div>
 
-{{-- FUND SOURCES --}}
+{{-- FUND SOURCE --}}
 <div class="mt-8">
     <h3 class="text-md font-semibold text-gray-800 mb-3">Fund Source</h3>
+
     @php
-        $fund = $travelOrder->expenses['fund_sources'] ?? [];
+        // Determine active fund source from the model or old input
+        $activeFund = old('fund_source', strtolower($travelOrder->fund_source ?? ''));
     @endphp
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         {{-- General Fund --}}
         <label class="flex items-center space-x-2">
-            <input type="checkbox" name="fund_sources[general_fund]" value="1"
-                   {{ old('fund_sources.general_fund', $fund['general_fund'] ?? false) ? 'checked' : '' }}>
+            <input type="radio" name="fund_source" value="General Fund" class="fund-source-toggle"
+                {{ $activeFund === 'general fund' ? 'checked' : '' }}>
             <span>General Fund</span>
         </label>
 
         {{-- Project Funds --}}
         <label class="flex items-center space-x-2">
-            <input type="checkbox" name="fund_sources[project_funds]" value="1"
-                   {{ old('fund_sources.project_funds', $fund['project_funds'] ?? false) ? 'checked' : '' }}>
+            <input type="radio" name="fund_source" value="Project Funds" class="fund-source-toggle"
+                {{ $activeFund === 'project funds' ? 'checked' : '' }}>
             <span>Project Funds</span>
         </label>
 
         {{-- Others --}}
         <label class="flex items-center space-x-2">
-            <input type="checkbox" name="fund_sources[others]" value="1"
-                   {{ !empty($fund['others']) ? 'checked' : '' }}>
-            <span>Others (Specify)</span>
+            <input type="radio" name="fund_source" value="Others" class="fund-source-toggle"
+                {{ $activeFund === 'others' ? 'checked' : '' }}>
+            <span>Others</span>
         </label>
     </div>
 
-    <input type="text" name="fund_sources[others_text]" placeholder="If Others, specify..."
-           class="mt-2 w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-           value="{{ old('fund_sources.others_text', $fund['others'] ?? '') }}">
+    {{-- Dynamic text input for Project Funds or Others --}}
+    <div id="fund-details-box"
+        class="mt-3 {{ in_array(strtolower($activeFund), ['project funds', 'others']) ? '' : 'hidden' }}">
+        <label class="block text-sm text-gray-700 mb-1">Specify Details</label>
+        <input type="text" name="fund_details" placeholder="e.g. SIDLAK, LGU, etc."
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            value="{{ old('fund_details', $travelOrder->fund_details ?? '') }}">
+    </div>
 </div>
 
+
 {{-- TRAVEL EXPENSES --}}
-<div class="mt-10">
+{{-- <div class="mt-10">
     <h3 class="text-md font-semibold text-gray-800 mb-3">Travel Expenses</h3>
     @php
         $cat = $travelOrder->expenses['categories'] ?? [];
@@ -129,10 +137,10 @@
         $cat['actual'] = is_array($cat['actual'] ?? null) ? $cat['actual'] : [];
         $cat['per_diem'] = is_array($cat['per_diem'] ?? null) ? $cat['per_diem'] : [];
         $cat['transportation'] = is_array($cat['transportation'] ?? null) ? $cat['transportation'] : [];
-    @endphp
+    @endphp --}}
 
-    {{-- Actual --}}
-    <div class="mb-4">
+{{-- Actual --}}
+{{-- <div class="mb-4">
         <p class="font-semibold text-gray-700">Actual:</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
             @foreach (['accommodation', 'meals_food', 'incidental_expenses'] as $item)
@@ -143,10 +151,10 @@
                 </label>
             @endforeach
         </div>
-    </div>
+    </div> --}}
 
-    {{-- Per Diem --}}
-    <div class="mb-4">
+{{-- Per Diem --}}
+{{-- <div class="mb-4">
         <p class="font-semibold text-gray-700">Per Diem:</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
             @foreach (['accommodation', 'subsistence', 'incidental_expenses'] as $item)
@@ -157,10 +165,10 @@
                 </label>
             @endforeach
         </div>
-    </div>
+    </div> --}}
 
-    {{-- Transportation --}}
-    <div class="mb-4">
+{{-- Transportation --}}
+{{-- <div class="mb-4">
         <p class="font-semibold text-gray-700">Transportation:</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
             <label class="flex items-center space-x-2">
@@ -176,7 +184,98 @@
             </div>
         </div>
     </div>
+</div> --}}
+
+{{-- TRAVEL EXPENSES --}}
+<div class="mt-10">
+    <h3 class="text-md font-semibold text-gray-800 mb-3">Travel Expenses</h3>
+    @php
+        $cat = $travelOrder->expenses['categories'] ?? [];
+
+        $cat['actual'] = is_array($cat['actual'] ?? null) ? $cat['actual'] : [];
+        $cat['per_diem'] = is_array($cat['per_diem'] ?? null) ? $cat['per_diem'] : [];
+        $cat['transportation'] = is_array($cat['transportation'] ?? null) ? $cat['transportation'] : [];
+    @endphp
+
+    {{-- ACTUAL --}}
+    <div class="mb-5">
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" name="expenses[categories][actual][enabled]" value="1" class="expense-toggle"
+                data-target="#actual-options"
+                {{ old('expenses.categories.actual.enabled', $cat['actual']['enabled'] ?? false) ? 'checked' : '' }}>
+            <span class="font-semibold text-gray-700">Actual</span>
+        </label>
+
+        <div id="actual-options"
+            class="ml-6 mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 {{ old('expenses.categories.actual.enabled', $cat['actual']['enabled'] ?? false) ? '' : 'hidden' }}">
+            @foreach ([
+        'accommodation' => 'Accommodation',
+        'meals_food' => 'Meals / Food',
+        'incidental_expenses' => 'Incidental Expenses',
+    ] as $key => $label)
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" name="expenses[categories][actual][{{ $key }}]" value="1"
+                        {{ old("expenses.categories.actual.$key", $cat['actual'][$key] ?? false) ? 'checked' : '' }}>
+                    <span>{{ $label }}</span>
+                </label>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- PER DIEM --}}
+    <div class="mb-5">
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" name="expenses[categories][per_diem][enabled]" value="1"
+                class="expense-toggle" data-target="#perdiem-options"
+                {{ old('expenses.categories.per_diem.enabled', $cat['per_diem']['enabled'] ?? false) ? 'checked' : '' }}>
+            <span class="font-semibold text-gray-700">Per Diem</span>
+        </label>
+
+        <div id="perdiem-options"
+            class="ml-6 mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 {{ old('expenses.categories.per_diem.enabled', $cat['per_diem']['enabled'] ?? false) ? '' : 'hidden' }}">
+            @foreach ([
+        'accommodation' => 'Accommodation',
+        'subsistence' => 'Subsistence',
+        'incidental_expenses' => 'Incidental Expenses',
+    ] as $key => $label)
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" name="expenses[categories][per_diem][{{ $key }}]" value="1"
+                        {{ old("expenses.categories.per_diem.$key", $cat['per_diem'][$key] ?? false) ? 'checked' : '' }}>
+                    <span>{{ $label }}</span>
+                </label>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- TRANSPORTATION --}}
+    <div class="mb-5">
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" name="expenses[categories][transportation][enabled]" value="1"
+                class="expense-toggle" data-target="#transport-options"
+                {{ old('expenses.categories.transportation.enabled', $cat['transportation']['enabled'] ?? false) ? 'checked' : '' }}>
+            <span class="font-semibold text-gray-700">Transportation</span>
+        </label>
+
+        <div id="transport-options"
+            class="ml-6 mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 {{ old('expenses.categories.transportation.enabled', $cat['transportation']['enabled'] ?? false) ? '' : 'hidden' }}">
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="expenses[categories][transportation][official_vehicle]" value="1"
+                    {{ old('expenses.categories.transportation.official_vehicle', $cat['transportation']['official_vehicle'] ?? false) ? 'checked' : '' }}>
+                <span>Official Vehicle</span>
+            </label>
+
+            <div>
+                <label class="block text-sm">Public Conveyance (Specify)</label>
+                <input type="text" name="expenses[categories][transportation][public_conveyance_text]"
+                    class="w-full border border-gray-300 rounded-md px-3 py-1 text-sm"
+                    value="{{ old('expenses.categories.transportation.public_conveyance_text', $cat['transportation']['public_conveyance_text'] ?? '') }}">
+            </div>
+        </div>
+    </div>
 </div>
+
+
+
 
 {{-- Submit --}}
 <div class="mt-10 flex justify-end gap-3">
@@ -190,40 +289,99 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+
+            /* ============================================================
+               TRAVELER ADD / REMOVE LOGIC
+            ============================================================ */
             const addButton = document.getElementById('add-traveler');
             const list = document.getElementById('traveler-list');
 
-            addButton.addEventListener('click', () => {
-                const index = list.querySelectorAll('.traveler-item').length;
+            if (addButton && list) {
+                addButton.addEventListener('click', () => {
+                    const index = list.querySelectorAll('.traveler-item').length;
 
-                const template = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 traveler-item mt-2">
-                <div>
-                    <input type="text" name="name[${index}][name]" placeholder="Full Name"
-                        class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                </div>
-                <div>
-                    <input type="text" name="name[${index}][position]" placeholder="Position"
-                        class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                </div>
-                <div class="flex items-center gap-2">
-                    <input type="text" name="name[${index}][agency]" placeholder="Agency/Division"
-                        class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                    <button type="button" class="text-red-600 text-lg font-bold remove-traveler leading-none">&times;</button>
-                </div>
-            </div>`;
+                    const template = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 traveler-item mt-2">
+                        <div>
+                            <input type="text" name="name[${index}][name]" placeholder="Full Name"
+                                class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <input type="text" name="name[${index}][position]" placeholder="Position"
+                                class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="text" name="name[${index}][agency]" placeholder="Agency/Division"
+                                class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                            <button type="button" class="text-red-600 text-lg font-bold remove-traveler leading-none">&times;</button>
+                        </div>
+                    </div>`;
 
-                list.insertAdjacentHTML('beforeend', template);
-                attachRemoveHandlers();
-            });
-
-            function attachRemoveHandlers() {
-                document.querySelectorAll('.remove-traveler').forEach(btn => {
-                    btn.onclick = () => btn.closest('.traveler-item').remove();
+                    list.insertAdjacentHTML('beforeend', template);
+                    attachRemoveHandlers();
                 });
+
+                function attachRemoveHandlers() {
+                    document.querySelectorAll('.remove-traveler').forEach(btn => {
+                        btn.onclick = () => btn.closest('.traveler-item').remove();
+                    });
+                }
+
+                attachRemoveHandlers();
             }
 
-            attachRemoveHandlers();
+            /* ============================================================
+               TRAVEL EXPENSES TOGGLE LOGIC
+            ============================================================ */
+            document.querySelectorAll('.expense-toggle').forEach(toggle => {
+                toggle.addEventListener('change', function() {
+                    const target = document.querySelector(this.dataset.target);
+                    if (!target) return;
+
+                    if (this.checked) {
+                        target.classList.remove('hidden');
+                    } else {
+                        target.classList.add('hidden');
+                        // Uncheck and clear all nested inputs
+                        target.querySelectorAll('input[type="checkbox"], input[type="text"]')
+                            .forEach(input => {
+                                input.checked = false;
+                                if (input.type === 'text') input.value = '';
+                            });
+                    }
+                });
+            });
+
+
+            /* ============================================================
+               FUND SOURCE TOGGLE LOGIC
+            ============================================================ */
+            document.querySelectorAll('.fund-source-toggle').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const fundDetailsBox = document.getElementById('fund-details-box');
+                    if (['project', 'others'].includes(this.value)) {
+                        fundDetailsBox.classList.remove('hidden');
+                    } else {
+                        fundDetailsBox.classList.add('hidden');
+                        const input = fundDetailsBox.querySelector('input');
+                        if (input) input.value = '';
+                    }
+                });
+            });
+
+            const toggles = document.querySelectorAll('.fund-source-toggle');
+            const detailsBox = document.getElementById('fund-details-box');
+
+            toggles.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (radio.value === 'Project Funds' || radio.value === 'Others') {
+                        detailsBox.classList.remove('hidden');
+                    } else {
+                        detailsBox.classList.add('hidden');
+                    }
+                });
+
+            }); // ✅ Properly close DOMContentLoaded
         });
     </script>
 @endpush

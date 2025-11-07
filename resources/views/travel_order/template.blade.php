@@ -181,20 +181,29 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
     </table>
 
     {{-- TRAVEL EXPENSES --}}
-
-    {{-- <pre>
-    Fund Source: {{ $fundSource ?? 'null' }}
-    Active Fund: {{ $activeFund ?? 'null' }}
-    </pre> --}}
-
     @php
         $mark = 'X';
 
-        // Top-level fund details and source
+        // decode and normalize expenses data
+        $expenses = $travelOrder->expenses ?? [];
+        if (is_string($expenses)) {
+            $decoded = json_decode($expenses, true);
+            $expenses = is_array($decoded) ? $decoded : [];
+        }
+
+        // normalize categories
+        $cat = $expenses['categories'] ?? [
+            'actual' => [],
+            'per_diem' => [],
+            'transportation' => [],
+            'others' => '',
+        ];
+
+        // fund source and details
         $fundSource = strtolower(trim($travelOrder->fund_source ?? ''));
         $fundDetails = $travelOrder->fund_details ?? null;
 
-        // Flexible mapping — handles "general fund", "project", "others", etc.
+        // determine active fund column
         $activeFund = match (true) {
             str_contains($fundSource, 'general') => 'general',
             str_contains($fundSource, 'project') => 'project',
@@ -215,50 +224,46 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
 
             {{-- General Fund --}}
             <td class="no-border fund-header" style="vertical-align: top;">
-                <span class="checkbox">
-                    {!! strtolower($fundSource) === 'general fund' || strtolower($fundSource) === 'general' ? $mark : '&nbsp;' !!}
-                </span>
+                <span class="checkbox">{!! $activeFund === 'general' ? $mark : '&nbsp;' !!}</span>
                 General Fund
-                @if (!empty($fundDetails) && (strtolower($fundSource) === 'general fund' || strtolower($fundSource) === 'general'))
-                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
-                        ({{ strtoupper($fundDetails) }})
-                    </div>
+                @if ($activeFund === 'general' && $fundDetails)
+                    <div style="margin-top:2px; font-size:9pt; text-align:center;">({{ strtoupper($fundDetails) }})</div>
                 @endif
             </td>
 
             {{-- Project Funds --}}
             <td class="no-border fund-header" style="vertical-align: top;">
-                <span class="checkbox">
-                    {!! strtolower($fundSource) === 'project funds' || strtolower($fundSource) === 'project' ? $mark : '&nbsp;' !!}
-                </span>
+                <span class="checkbox">{!! $activeFund === 'project' ? $mark : '&nbsp;' !!}</span>
                 Project Funds
-                @if (!empty($fundDetails) && (strtolower($fundSource) === 'project funds' || strtolower($fundSource) === 'project'))
-                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
-                        ({{ strtoupper($fundDetails) }})
-                    </div>
+                @if ($activeFund === 'project' && $fundDetails)
+                    <div style="margin-top:2px; font-size:9pt; text-align:center;">({{ strtoupper($fundDetails) }})</div>
                 @endif
             </td>
 
             {{-- Others --}}
             <td class="no-border fund-header" style="vertical-align: top;">
-                <span class="checkbox">
-                    {!! strtolower($fundSource) === 'others' || strtolower($fundSource) === 'other' ? $mark : '&nbsp;' !!}
-                </span>
+                <span class="checkbox">{!! $activeFund === 'others' ? $mark : '&nbsp;' !!}</span>
                 Others
-                @if (!empty($fundDetails) && (strtolower($fundSource) === 'others' || strtolower($fundSource) === 'other'))
-                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
-                        ({{ strtoupper($fundDetails) }})
-                    </div>
+                @if ($activeFund === 'others' && $fundDetails)
+                    <div style="margin-top:2px; font-size:9pt; text-align:center;">({{ strtoupper($fundDetails) }})</div>
                 @endif
             </td>
         </tr>
 
         {{-- ACTUAL --}}
+        @php
+            $actualEnabled =
+                !empty($cat['actual']) &&
+                (!empty($cat['actual']['accommodation']) ||
+                    !empty($cat['actual']['meals_food']) ||
+                    !empty($cat['actual']['incidental_expenses']));
+        @endphp
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Actual</td>
+            <td class="no-border">
+                <span class="checkbox">{!! $actualEnabled ? $mark : '&nbsp;' !!}</span> Actual
+            </td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
-
         @php
             $actualItems = [
                 'accommodation' => 'Accommodation',
@@ -271,20 +276,26 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 <td class="no-border subitem">{{ $label }}</td>
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
-                        <span class="cell-line">
-                            {!! $activeFund === $fundType && ($cat['actual'][$item] ?? false) ? $mark : '&nbsp;' !!}
-                        </span>
+                        <span class="cell-line">{!! $activeFund === $fundType && !empty($cat['actual'][$key]) ? $mark : '&nbsp;' !!}</span>
                     </td>
                 @endforeach
             </tr>
         @endforeach
 
         {{-- PER DIEM --}}
+        @php
+            $perDiemEnabled =
+                !empty($cat['per_diem']) &&
+                (!empty($cat['per_diem']['accommodation']) ||
+                    !empty($cat['per_diem']['subsistence']) ||
+                    !empty($cat['per_diem']['incidental_expenses']));
+        @endphp
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Per Diem</td>
+            <td class="no-border">
+                <span class="checkbox">{!! $perDiemEnabled ? $mark : '&nbsp;' !!}</span> Per Diem
+            </td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
-
         @php
             $perDiemItems = [
                 'accommodation' => 'Accommodation',
@@ -297,58 +308,59 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 <td class="no-border subitem">{{ $label }}</td>
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
-                        <span class="cell-line">
-                            {!! $activeFund === $fundType && ($cat['per_diem'][$item] ?? false) ? $mark : '&nbsp;' !!}
-                        </span>
+                        <span class="cell-line">{!! $activeFund === $fundType && !empty($cat['per_diem'][$key]) ? $mark : '&nbsp;' !!}</span>
                     </td>
                 @endforeach
             </tr>
         @endforeach
 
         {{-- TRANSPORTATION --}}
-        <tr>
-            <td class="no-border"><span class="checkbox"></span> Transportation</td>
-            <td class="no-border" colspan="3">&nbsp;</td>
-        </tr>
-
         @php
-            // Safely read the optional note (text field)
-            $transportText = data_get($travelOrder->expenses, 'categories.transportation.public_conveyance_text');
-            // NOTE: If you want a checkbox for public conveyance, prefer a boolean key like 'public_conveyance'
+            $transportEnabled =
+                !empty($cat['transportation']) &&
+                (!empty($cat['transportation']['official_vehicle']) ||
+                    !empty($cat['transportation']['public_conveyance']) ||
+                    !empty($cat['transportation']['public_conveyance_text']));
+
+            $transportText = $cat['transportation']['public_conveyance_text'] ?? '';
             $transportItems = [
                 'official_vehicle' => 'Official Vehicle',
-                // using 'public_conveyance_text' will only mark X if the note has a non-empty value
-                'public_conveyance_text' => 'Public Conveyance (Airplane, Bus, Taxi)',
+                'public_conveyance' => 'Public Conveyance (Airplane, Bus, Taxi)',
             ];
         @endphp
-
+        <tr>
+            <td class="no-border">
+                <span class="checkbox">{!! $transportEnabled ? $mark : '&nbsp;' !!}</span> Transportation
+            </td>
+            <td class="no-border" colspan="3">&nbsp;</td>
+        </tr>
         @foreach ($transportItems as $key => $label)
             <tr>
                 <td class="no-border subitem">
                     {{ $label }}
-                    @if ($key === 'public_conveyance_text' && $transportText)
+                    @if ($key === 'public_conveyance' && $transportText)
                         ({{ $transportText }})
                     @endif
                 </td>
                 @foreach (['general', 'project', 'others'] as $fundType)
                     <td class="no-border cell-center">
-                        <span class="cell-line">
-                            {!! $activeFund === $fundType && ($cat['transportation'][$t] ?? false) ? $mark : '&nbsp;' !!}
-                        </span>
+                        <span class="cell-line">{!! $activeFund === $fundType && !empty($cat['transportation'][$key]) ? $mark : '&nbsp;' !!}</span>
                     </td>
                 @endforeach
             </tr>
         @endforeach
 
         {{-- OTHERS --}}
+        @php $othersEnabled = !empty($cat['others']); @endphp
         <tr>
-            <td class="no-border"><span class="checkbox"></span> Others</td>
+            <td class="no-border">
+                <span class="checkbox">{!! $othersEnabled ? $mark : '&nbsp;' !!}</span> Others
+            </td>
             <td class="no-border" colspan="3">
                 <span class="cell-line">{{ $cat['others'] ?? '' }}</span>
             </td>
         </tr>
     </table>
-
 
 
 

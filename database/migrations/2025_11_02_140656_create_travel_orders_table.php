@@ -19,10 +19,10 @@ return new class extends Migration
 
             // Personnel Information (multiple travelers)
             // Stored as JSON array: [{ name, position, agency }, ...]
-            $table->json('name');
+            $table->json('name')->nullable();
 
             // Travel details
-            $table->string('destination');
+            $table->string('destination')->nullable();
             $table->string('inclusive_dates')->nullable();
             $table->text('purpose')->nullable();
             $table->string('fund_source')->nullable();

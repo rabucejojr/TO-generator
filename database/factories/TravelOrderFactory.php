@@ -44,38 +44,37 @@ class TravelOrderFactory extends Factory
             ->values()
             ->all();
 
-            // Random boolean helper for shorter syntax
+        // Random boolean helper for shorter syntax
         $b = fn() => $this->faker->boolean(70); // 70% chance true
 
-        // Random fund source data
-        $fundSources = [
-            'general_fund' => $b(),
-            'project_funds' => $b(),
-            'project_funds_details' => $this->faker->randomElement(['SIDLAK', 'STARBOOKS', 'CEST', 'SMART CITY', null]),
-            'others' => $this->faker->optional(0.3)->word(), // 30% chance of having an "Others" text
-        ];
+        // Random top-level fund source
+        $fundSource = $this->faker->randomElement(['General Fund', 'Project Funds', 'Others']);
+        $fundDetails = null;
+
+        if ($fundSource === 'Project Funds') {
+            $fundDetails = $this->faker->randomElement(['SIDLAK', 'STARBOOKS', 'CEST', 'SMART CITY']);
+        } elseif ($fundSource === 'Others') {
+            $fundDetails = $this->faker->randomElement(['LGU', 'Private Partner', 'N/A']);
+        }
 
         // Random categories data
         $categories = [
             'actual' => [
-                'enabled' => $b(),
                 'accommodation' => $b(),
                 'meals_food' => $b(),
                 'incidental_expenses' => $b(),
             ],
             'per_diem' => [
-                'enabled' => $b(),
                 'accommodation' => $b(),
                 'subsistence' => $b(),
                 'incidental_expenses' => $b(),
             ],
             'transportation' => [
-                'enabled' => $b(),
                 'official_vehicle' => $b(),
                 'public_conveyance' => $b(),
-                'public_conveyance_text' => $this->faker->optional($weight = 0.5)->randomElement(['Bus', 'Airplane', 'Taxi', 'Van']),
+                'public_conveyance_text' => $this->faker->optional(0.5)->randomElement(['Bus', 'Airplane', 'Taxi', 'Van']),
             ],
-            'others_enabled' => $b(),
+            'others' => $this->faker->optional(0.5)->sentence(3),
         ];
 
         return [
@@ -83,15 +82,17 @@ class TravelOrderFactory extends Factory
             'filing_date' => $this->faker->date(),
             'series' => '2025',
             'name' => $selectedTravelers,
-
             'destination' => $destination,
             'inclusive_dates' => 'November ' . $this->faker->numberBetween(1, 5) . ', 2025',
             'purpose' => 'To conduct project monitoring and coordination with local government partners.',
 
-            // Simplified expenses structure
+            // Top-level fund fields (cleaner schema)
+            'fund_source' => $fundSource,
+            'fund_details' => $fundDetails,
+
+            // Expenses: only categories
             'expenses' => [
                 'categories' => $categories,
-                'fund_sources' => $fundSources,
             ],
 
             'remarks' => 'Liquidation of travel expenses should follow DOST guidelines and be submitted within seven (7) days after completion of travel.',
