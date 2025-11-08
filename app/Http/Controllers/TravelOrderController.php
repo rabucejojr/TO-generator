@@ -33,7 +33,7 @@ class TravelOrderController extends Controller
         return view('travel_order.edit', compact('travelOrder'));
     }
 
-public function store(Request $request)
+public function store(Request $request, TravelOrder $travelOrder)
 {
     $validated = $request->validate([
         'name' => 'required|array|min:1',
@@ -103,18 +103,19 @@ public function store(Request $request)
      * ------------------------------- */
     $scope = $request->input('scope', 'within');
 
-    if ($scope === 'outside') {
-        $approvedBy = 'ENGR. NOEL M. AJOC';
-        $approvedPosition = 'Regional Director';
-        $recommendingApproval = [
-            'name' => 'MR. RICARDO N. VARELA',
-            'position' => 'OIC, PSTO-SDN',
-        ];
-    } else {
-        $approvedBy = 'MR. RICARDO N. VARELA';
-        $approvedPosition = 'OIC, PSTO-SDN';
-        $recommendingApproval = null;
-    }
+    // if ($scope === 'outside') {
+    //     $approvedBy = 'ENGR. NOEL M. AJOC';
+    //     $approvedPosition = 'Regional Director';
+    //     $recommendingApproval = [
+    //         'name' => 'MR. RICARDO N. VARELA',
+    //         'position' => 'OIC, PSTO-SDN',
+    //     ];
+    // } else {
+    //     $approvedBy = 'MR. RICARDO N. VARELA';
+    //     $approvedPosition = 'OIC, PSTO-SDN';
+    //     $recommendingApproval = null;
+    // }
+    $travelOrder->applySignatories();
 
     /* -------------------------------
      * Create Travel Order
@@ -128,11 +129,11 @@ public function store(Request $request)
         'inclusive_dates' => $validated['inclusive_dates'],
         'purpose' => $validated['purpose'],
         'fund_source' => $fundSource,   // ✅ add this
-    'fund_details' => $fundDetails, // ✅ add this
+        'fund_details' => $fundDetails, // ✅ add this
         'expenses' => $expenses,
         'scope' => $scope,
-        'approved_by' => $approvedBy,
-        'approved_position' => $approvedPosition,
+        // 'approved_by' => $approvedBy,
+        // 'approved_position' => $approvedPosition,
         'regional_director' => $recommendingApproval['name'] ?? null,
         'regional_position' => $recommendingApproval['position'] ?? null,
     ]);
@@ -190,18 +191,20 @@ public function update(Request $request, TravelOrder $travelOrder)
 
     $scope = $request->input('scope', 'within');
 
-    if ($scope === 'outside') {
-        $approvedBy = 'ENGR. NOEL M. AJOC';
-        $approvedPosition = 'Regional Director';
-        $recommendingApproval = [
-            'name' => 'MR. RICARDO N. VARELA',
-            'position' => 'OIC, PSTO-SDN',
-        ];
-    } else {
-        $approvedBy = 'MR. RICARDO N. VARELA';
-        $approvedPosition = 'OIC, PSTO-SDN';
-        $recommendingApproval = null;
-    }
+    // if ($scope === 'outside') {
+    //     $approvedBy = 'ENGR. NOEL M. AJOC';
+    //     $approvedPosition = 'Regional Director';
+    //     $recommendingApproval = [
+    //         'name' => 'MR. RICARDO N. VARELA',
+    //         'position' => 'OIC, PSTO-SDN',
+    //     ];
+    // } else {
+    //     $approvedBy = 'MR. RICARDO N. VARELA';
+    //     $approvedPosition = 'OIC, PSTO-SDN';
+    //     $recommendingApproval = null;
+    // }
+
+    $travelOrder->applySignatories();
 
     $travelOrder->update([
         'name' => $validated['name'],
@@ -212,14 +215,14 @@ public function update(Request $request, TravelOrder $travelOrder)
         'fund_source' => $fundSource,   // ✅ add this
         'fund_details' => $fundDetails, // ✅ add this
         'scope' => $scope,
-        'approved_by' => $approvedBy,
-        'approved_position' => $approvedPosition,
+        // 'approved_by' => $approvedBy,
+        // 'approved_position' => $approvedPosition,
         'regional_director' => $recommendingApproval['name'] ?? null,
         'regional_position' => $recommendingApproval['position'] ?? null,
     ]);
 
     //test
-    // dd($request->fund_details);
+    // dd($request->expenses);
 
     return redirect()
         ->route('travel_order.edit', $travelOrder)
@@ -241,43 +244,48 @@ public function update(Request $request, TravelOrder $travelOrder)
     /**
      * Preview a specific Travel Order PDF template.
      */
+    // public function preview($id)
+    // {
+    //     $travelOrder = TravelOrder::findOrFail($id);
+
+    //     // Ensure decoded arrays for PDF
+    //     $travelOrder->name = is_string($travelOrder->name)
+    //         ? json_decode($travelOrder->name, true)
+    //         : $travelOrder->name;
+
+    //     $travelOrder->expenses = is_string($travelOrder->expenses)
+    //         ? json_decode($travelOrder->expenses, true)
+    //         : $travelOrder->expenses;
+
+    //     $fundSource = $travelOrder->fund_source ?? null;
+    //     $fundDetails = $travelOrder->fund_details ?? (
+    //         $travelOrder->expenses['fund_sources']['project_funds_details'] ??
+    //         $travelOrder->expenses['fund_sources']['others'] ??
+    //         null
+    //     );
+
+    //     // ✅ Pass all needed data into the Blade view
+    //     $pdf = Pdf::loadView('travel_order.template', [
+    //         'travelOrder' => $travelOrder,
+    //         'fundSource' => $fundSource,
+    //         'fundDetails' => $fundDetails,
+    //     ])->setPaper('A4', 'portrait');
+
+    //     return $pdf->stream("travel_order_{$travelOrder->travel_order_no}.pdf");
+    // }
+
+        /**
+     * Preview and Download the specific Travel Order PDF template.
+     */
     public function preview($id)
     {
-        $travelOrder = TravelOrder::findOrFail($id);
+        $travelOrder = TravelOrder::findOrFail($id)->refresh();
 
-        // Ensure decoded arrays for PDF
-        $travelOrder->name = is_string($travelOrder->name)
-            ? json_decode($travelOrder->name, true)
-            : $travelOrder->name;
-
-        $travelOrder->expenses = is_string($travelOrder->expenses)
-            ? json_decode($travelOrder->expenses, true)
-            : $travelOrder->expenses;
-
-        $fundSource = $travelOrder->fund_source ?? null;
-        $fundDetails = $travelOrder->fund_details ?? (
-            $travelOrder->expenses['fund_sources']['project_funds_details'] ??
-            $travelOrder->expenses['fund_sources']['others'] ??
-            null
-        );
-
-        // ✅ Pass all needed data into the Blade view
         $pdf = Pdf::loadView('travel_order.template', [
             'travelOrder' => $travelOrder,
-            'fundSource' => $fundSource,
-            'fundDetails' => $fundDetails,
+            'fundSource' => $travelOrder->fund_source,
+            'fundDetails' => $travelOrder->fund_details,
         ])->setPaper('A4', 'portrait');
-
-        return $pdf->stream("travel_order_{$travelOrder->travel_order_no}.pdf");
-    }
-
-    /**
-     * Generate PDF for a specific travel order record.
-     */
-    public function generate(TravelOrder $travelOrder)
-    {
-        $pdf = Pdf::loadView('travel_order.pdf', compact('travelOrder'))
-            ->setPaper('A4', 'portrait');
 
         return $pdf->stream("travel_order_{$travelOrder->travel_order_no}.pdf");
     }

@@ -49,13 +49,6 @@
         </button>
     </div>
 
-    {{-- Destination --}}
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
-        <input type="text" name="destination" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-            value="{{ old('destination', $travelOrder->destination ?? '') }}">
-    </div>
-
     {{-- Travel Scope --}}
     <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Travel Scope</label>
@@ -67,6 +60,13 @@
                 Outside Surigao del Norte
             </option>
         </select>
+    </div>
+
+    {{-- Destination --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+        <input type="text" name="destination" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            value="{{ old('destination', $travelOrder->destination ?? '') }}">
     </div>
 
 
@@ -211,7 +211,8 @@
             @foreach (['official_vehicle' => 'Official Vehicle', 'public_conveyance' => 'Public Conveyance (Specify)'] as $key => $label)
                 <div>
                     <label class="flex items-center space-x-2">
-                        <input type="checkbox" name="expenses[categories][transportation][{{ $key }}]" value="1"
+                        <input type="checkbox" name="expenses[categories][transportation][{{ $key }}]"
+                            value="1"
                             {{ old("expenses.categories.transportation.$key", $cat['transportation'][$key] ?? false) ? 'checked' : '' }}>
                         <span>{{ $label }}</span>
                     </label>
@@ -225,6 +226,16 @@
             @endforeach
         </div>
     </div>
+
+    {{-- Others --}}
+    <div class="mb-4">
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" name="expenses[categories][others_enabled]" value="1" id="others-checkbox"
+                {{ old('expenses.categories.others_enabled', $cat['others_enabled'] ?? false) ? 'checked' : '' }}>
+            <span class="font-semibold text-gray-700">Others</span>
+        </label>
+    </div>
+
 </div>
 
 
