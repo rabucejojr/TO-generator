@@ -210,10 +210,10 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             {{-- General Fund --}}
             <td class="no-border fund-header" style="vertical-align: top;">
                 <span class="checkbox">
-                    {!! str_contains($fundSource, 'general') ? $mark : '&nbsp;' !!}
+                    {!! strtolower($fundSource) === 'general fund' || strtolower($fundSource) === 'general' ? $mark : '&nbsp;' !!}
                 </span>
                 General Fund
-                @if (!empty($fundDetails) && str_contains($fundSource, 'general'))
+                @if (!empty($fundDetails) && (strtolower($fundSource) === 'general fund' || strtolower($fundSource) === 'general'))
                     <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
                         ({{ strtoupper($fundDetails) }})
                     </div>
@@ -223,10 +223,10 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             {{-- Project Funds --}}
             <td class="no-border fund-header" style="vertical-align: top;">
                 <span class="checkbox">
-                    {!! str_contains($fundSource, 'project') ? $mark : '&nbsp;' !!}
+                    {!! strtolower($fundSource) === 'project funds' || strtolower($fundSource) === 'project' ? $mark : '&nbsp;' !!}
                 </span>
                 Project Funds
-                @if (!empty($fundDetails) && str_contains($fundSource, 'project'))
+                @if (!empty($fundDetails) && (strtolower($fundSource) === 'project funds' || strtolower($fundSource) === 'project'))
                     <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
                         ({{ strtoupper($fundDetails) }})
                     </div>
@@ -236,10 +236,10 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             {{-- Others --}}
             <td class="no-border fund-header" style="vertical-align: top;">
                 <span class="checkbox">
-                    {!! str_contains($fundSource, 'other') ? $mark : '&nbsp;' !!}
+                    {!! strtolower($fundSource) === 'others' || strtolower($fundSource) === 'other' ? $mark : '&nbsp;' !!}
                 </span>
                 Others
-                @if (!empty($fundDetails) && str_contains($fundSource, 'other'))
+                @if (!empty($fundDetails) && (strtolower($fundSource) === 'others' || strtolower($fundSource) === 'other'))
                     <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
                         ({{ strtoupper($fundDetails) }})
                     </div>
