@@ -224,40 +224,66 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
 
             {{-- General Fund --}}
             <td class="no-border fund-header" style="vertical-align: top;">
+<<<<<<< HEAD
                 <span class="checkbox">{!! $activeFund === 'general' ? $mark : '&nbsp;' !!}</span>
                 General Fund
                 @if ($activeFund === 'general' && $fundDetails)
                     <div style="margin-top:2px; font-size:9pt; text-align:center;">({{ strtoupper($fundDetails) }})</div>
+=======
+                <span class="checkbox">
+                    {!! str_contains($fundSource, 'general') ? $mark : '&nbsp;' !!}
+                </span>
+                General Fund
+                @if (!empty($fundDetails) && str_contains($fundSource, 'general'))
+                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
+                        ({{ strtoupper($fundDetails) }})
+                    </div>
+>>>>>>> dev
                 @endif
             </td>
 
             {{-- Project Funds --}}
             <td class="no-border fund-header" style="vertical-align: top;">
+<<<<<<< HEAD
                 <span class="checkbox">{!! $activeFund === 'project' ? $mark : '&nbsp;' !!}</span>
                 Project Funds
                 @if ($activeFund === 'project' && $fundDetails)
                     <div style="margin-top:2px; font-size:9pt; text-align:center;">({{ strtoupper($fundDetails) }})</div>
+=======
+                <span class="checkbox">
+                    {!! str_contains($fundSource, 'project') ? $mark : '&nbsp;' !!}
+                </span>
+                Project Funds
+                @if (!empty($fundDetails) && str_contains($fundSource, 'project'))
+                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
+                        ({{ strtoupper($fundDetails) }})
+                    </div>
+>>>>>>> dev
                 @endif
             </td>
 
             {{-- Others --}}
             <td class="no-border fund-header" style="vertical-align: top;">
+<<<<<<< HEAD
                 <span class="checkbox">{!! $activeFund === 'others' ? $mark : '&nbsp;' !!}</span>
                 Others
                 @if ($activeFund === 'others' && $fundDetails)
                     <div style="margin-top:2px; font-size:9pt; text-align:center;">({{ strtoupper($fundDetails) }})</div>
+=======
+                <span class="checkbox">
+                    {!! str_contains($fundSource, 'other') ? $mark : '&nbsp;' !!}
+                </span>
+                Others
+                @if (!empty($fundDetails) && str_contains($fundSource, 'other'))
+                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
+                        ({{ strtoupper($fundDetails) }})
+                    </div>
+>>>>>>> dev
                 @endif
             </td>
         </tr>
 
-        {{-- ACTUAL --}}
-        @php
-            $actualEnabled =
-                !empty($cat['actual']) &&
-                (!empty($cat['actual']['accommodation']) ||
-                    !empty($cat['actual']['meals_food']) ||
-                    !empty($cat['actual']['incidental_expenses']));
-        @endphp
+        {{-- ACTUAL EXPENSES --}}
         <tr>
             <td class="no-border">
                 <span class="checkbox">{!! $actualEnabled ? $mark : '&nbsp;' !!}</span> Actual
@@ -271,6 +297,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 'incidental_expenses' => 'Incidental Expenses',
             ];
         @endphp
+
         @foreach ($actualItems as $key => $label)
             <tr>
                 <td class="no-border subitem">{{ $label }}</td>
@@ -303,6 +330,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 'incidental_expenses' => 'Incidental Expenses',
             ];
         @endphp
+
         @foreach ($perDiemItems as $key => $label)
             <tr>
                 <td class="no-border subitem">{{ $label }}</td>
@@ -334,11 +362,29 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             </td>
             <td class="no-border" colspan="3">&nbsp;</td>
         </tr>
+<<<<<<< HEAD
+=======
+
+        @php
+            // Fetch transport data from categories
+            $transportText = data_get($travelOrder->expenses, 'categories.transportation.public_conveyance_text');
+            $transportItems = [
+                'official_vehicle' => 'Official Vehicle',
+                'public_conveyance' => 'Public Conveyance (Airplane, Bus, Taxi)',
+            ];
+        @endphp
+
+>>>>>>> dev
         @foreach ($transportItems as $key => $label)
             <tr>
                 <td class="no-border subitem">
                     {{ $label }}
+<<<<<<< HEAD
                     @if ($key === 'public_conveyance' && $transportText)
+=======
+                    {{-- Append transport text if available --}}
+                    @if ($key === 'public_conveyance' && !empty($transportText))
+>>>>>>> dev
                         ({{ $transportText }})
                     @endif
                 </td>
@@ -350,6 +396,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             </tr>
         @endforeach
 
+<<<<<<< HEAD
         {{-- OTHERS --}}
         @php $othersEnabled = !empty($cat['others']); @endphp
         <tr>
@@ -359,11 +406,33 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             <td class="no-border" colspan="3">
                 <span class="cell-line">{{ $cat['others'] ?? '' }}</span>
             </td>
+=======
+
+        {{-- OTHERS --}}
+        <tr>
+            <td class="no-border">
+                <span class="checkbox">
+                    {!! $travelOrder->isExpenseChecked('others_enabled') ? $mark : '&nbsp;' !!}
+                </span>
+                Others
+            </td>
+
+            @foreach (['general', 'project', 'others'] as $fundType)
+                <td class="no-border cell-center">
+                    <span class="cell-line">
+                        {!! $activeFund === $fundType && $travelOrder->isExpenseChecked('others_enabled') ? $mark : '&nbsp;' !!}
+                    </span>
+                </td>
+            @endforeach
+>>>>>>> dev
         </tr>
     </table>
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
     {{-- REMARKS --}}
     <p class="mt-3 bold">Remarks / Special Instructions: {{ $travelOrder->remarks }}</p>
     <p class="text-justify">
@@ -375,40 +444,20 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
 
     {{-- SIGNATURE --}}
     <div class="signature" style="margin-top: 35px; page-break-inside: avoid;">
-        @if ($travelOrder->is_outside_province)
-            <table width="100%" class="no-border">
-                <tr>
-                    <td width="60%" style="vertical-align: top;">
-                        <p class="bold">Recommending Approval:</p>
-                        <div style="margin-top: 25px;">
-                            <p class="bold" style="text-transform: uppercase;">
-                                {{ $travelOrder->approved_by ?? 'MR. RICARDO N. VARELA' }}
-                            </p>
-                            <p>{{ $travelOrder->approved_position ?? 'OIC, PSTO-SDN' }}</p>
-                        </div>
-                    </td>
-                    <td width="40%" style="vertical-align: bottom; padding-top: 60px;">
-                        <p class="bold">Approved:</p>
-                        <div style="margin-top: 25px;">
-                            <p class="bold" style="text-transform: uppercase;">
-                                {{ $travelOrder->regional_director ?? 'ENGR. NOEL M. AJOC' }}
-                            </p>
-                            <p>{{ $travelOrder->regional_position ?? 'Regional Director, DOST Caraga' }}</p>
-                        </div>
-                    </td>
-                </tr>
-            </table>
-        @else
-            <div style="margin-top: 40px;">
-                <p class="bold">Approved:</p>
-                <div style="margin-top: 25px;">
-                    <p class="bold" style="text-transform: uppercase;">
-                        {{ $travelOrder->approved_by ?? 'MR. RICARDO N. VARELA' }}
-                    </p>
-                    <p>{{ $travelOrder->approved_position ?? 'OIC, PSTO-SDN' }}</p>
-                </div>
+        @foreach ($travelOrder->signatories as $key => $signatory)
+            @if ($key === 'recommending')
+                <p class="bold">{{ $signatory['label'] }}</p>
+            @else
+                <p class="bold" style="margin-top: 40px;">{{ $signatory['label'] }}</p>
+            @endif
+            <div style="margin-top: 25px;">
+                <p class="bold" style="text-transform: uppercase;">{{ $signatory['name'] }}</p>
+                <p>{{ $signatory['position'] }}</p>
             </div>
-        @endif
+        @endforeach
     </div>
+
+
+
 
 @endsection

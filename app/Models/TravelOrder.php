@@ -78,14 +78,26 @@ class TravelOrder extends Model
      */
     public function isExpenseChecked(string $section, ?string $subItem = null): bool
     {
-        $cat = $this->categories[$section] ?? [];
+        // Safely access nested "categories" array
+        $categories = data_get($this->expenses, 'categories', []);
 
-        if ($subItem) {
-            return !empty($cat[$subItem]);
+        // ✅ Handle flat keys like "others_enabled" (can be string, int, bool, or null)
+        if (array_key_exists($section, $categories) && !is_array($categories[$section])) {
+            return filter_var($categories[$section], FILTER_VALIDATE_BOOLEAN);
         }
 
-        return !empty($cat['enabled']);
+        // Handle nested expense sections (actual, per_diem, transportation)
+        $cat = $categories[$section] ?? [];
+
+        if ($subItem) {
+            return filter_var(data_get($cat, $subItem, false), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return filter_var(data_get($cat, 'enabled', false), FILTER_VALIDATE_BOOLEAN);
     }
+
+
+
 
     /**
      * Get public conveyance note if applicable
@@ -94,4 +106,73 @@ class TravelOrder extends Model
     {
         return $this->categories['transportation']['public_conveyance_text'] ?? null;
     }
+
+        /**
+     * Automatically apply correct signatories based on destination or scope.
+     *
+     * - Within Surigao del Norte → Approved by: Mr. Ricardo N. Varela
+     * - Outside Surigao del Norte → Recommending Approval: Mr. Varela, Approved by: Engr. Ajoc
+     */
+    public function applySignatories(): void
+    {
+        // Detect if travel is outside province using model logic
+        $isOutside = $this->is_outside_province;
+
+        if ($isOutside) {
+            // Outside province
+            $this->approved_by = 'ENGR. NOEL M. AJOC';
+            $this->approved_position = 'Regional Director, DOST Caraga';
+            $this->regional_director = 'MR. RICARDO N. VARELA';
+            $this->regional_position = 'OIC, PSTO-SDN';
+        } else {
+            // Within province
+            $this->approved_by = 'MR. RICARDO N. VARELA';
+            $this->approved_position = 'OIC, PSTO-SDN';
+            $this->regional_director = null;
+            $this->regional_position = null;
+        }
+
+        // Save immediately if model already exists
+        if ($this->exists) {
+            $this->save();
+        }
+    }
+
+    /**
+ * Return structured signatory data ready for display.
+ *
+ * @return array
+ */
+public function getSignatoriesAttribute(): array
+{
+    $this->applySignatories(); // ensure it's up to date
+
+    if ($this->is_outside_province) {
+        return [
+            'recommending' => [
+                'label' => 'Recommending Approval:',
+                'name' => $this->approved_by ?? 'MR. RICARDO N. VARELA',
+                'position' => $this->approved_position ?? 'OIC, PSTO-SDN',
+
+                // 'name' => $this->regional_director ?? 'MR. RICARDO N. VARELA',
+                // 'position' => $this->regional_position ?? 'OIC, PSTO-SDN',
+            ],
+            'approved' => [
+                'label' => 'Approved:',
+                'name' => $this->regional_director ?? 'ENGR. NOEL M. AJOC',
+                'position' => $this->approved_position ?? 'Regional Director, DOST Caraga',
+            ],
+        ];
+    }
+
+    return [
+        'approved' => [
+            'label' => 'Approved:',
+            'name' => $this->approved_by ?? 'MR. RICARDO N. VARELA',
+            'position' => $this->approved_position ?? 'OIC, PSTO-SDN',
+        ],
+    ];
+}
+
+
 }
