@@ -184,10 +184,10 @@ class TravelOrder extends Model
 
         if ($isOutside) {
             // Outside province
-            $this->approved_by = 'ENGR. NOEL M. AJOC';
-            $this->approved_position = 'Regional Director, DOST Caraga';
-            $this->regional_director = 'MR. RICARDO N. VARELA';
-            $this->regional_position = 'OIC, PSTO-SDN';
+            $this->approved_by = 'MR. RICARDO N. VARELA';
+            $this->approved_position = 'OIC, PSTO-SDN';
+            $this->regional_director = 'ENGR. NOEL M. AJOC';
+            $this->regional_position = 'Regional Director, DOST Caraga';
         } else {
             // Within province
             $this->approved_by = 'MR. RICARDO N. VARELA';
