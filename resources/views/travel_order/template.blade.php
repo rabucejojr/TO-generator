@@ -188,7 +188,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
         $fundSource = strtolower(
             trim($travelOrder->fund_source ?? data_get($travelOrder->expenses, 'fund_source', '')),
         );
-        $fundDetails = trim($travelOrder->fund_details ?? data_get($travelOrder->expenses, 'fund_details', ''));
+        $fundDetails = trim($travelOrder->fund_details);
 
         // Determine active fund for use in expense section
         $activeFund = match (true) {
@@ -227,7 +227,8 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 Project Funds
                 @if (!empty($travelOrder->fund_details) && str_contains(strtolower($fundSource), 'project'))
                     <div style="margin-top: 3px; font-size: 9pt; text-align: center;">
-                        <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong>
+                        {{-- <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong> --}}
+                        <strong>{{ strtoupper($fundDetails) }}</strong>
                     </div>
                 @endif
             </td>
@@ -240,7 +241,8 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 Others
                 @if (!empty($travelOrder->fund_details) && str_contains(strtolower($fundSource), 'other'))
                     <div style="margin-top: 3px; font-size: 9pt; text-align: center;">
-                        <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong>
+                        {{-- <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong> --}}
+                        <strong>{{ strtoupper($fundDetails) }}</strong>
                     </div>
                 @endif
             </td>

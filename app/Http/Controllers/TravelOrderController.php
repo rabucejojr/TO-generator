@@ -187,7 +187,7 @@ class TravelOrderController extends Controller
         $travelOrder->applySignatories();
 
         return redirect()
-            ->route('travel_order.edit', $travelOrder)
+            ->route('travel_order.index', $travelOrder)
             ->with('success', 'Travel Order updated successfully.');
     }
 
