@@ -391,7 +391,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
     </p>
 
     {{-- SIGNATURE --}}
-    <div class="signature" style="margin-top: 20px; page-break-inside: avoid;">
+    {{-- <div class="signature" style="margin-top: 20px; page-break-inside: avoid;">
         @foreach ($travelOrder->signatories as $key => $signatory)
             @if ($key === 'recommending')
                 <p class="bold">{{ $signatory['label'] }}</p>
@@ -403,9 +403,60 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 <p>{{ $signatory['position'] }}</p>
             </div>
         @endforeach
+    </div> --}}
+
+    {{-- SIGNATURE --}}
+    <div class="signature" style="margin-top: 10px; page-break-inside: avoid; width: 100%; font-size: 10pt;">
+        @php
+            $signatories = $travelOrder->signatories;
+            $hasRecommending = isset($signatories['recommending']);
+        @endphp
+
+        @if ($hasRecommending)
+            {{-- Two-signatory layout (Recommending left, Approved right but slightly lower) --}}
+            <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 10px; border: none;">
+                <tr>
+                    {{-- Left: Recommending Approval --}}
+                    <td width="50%" align="left" valign="top" style="border: none;">
+                        <p class="bold" style="margin-bottom: 30px; font-weight: bold;">
+                            {{ $signatories['recommending']['label'] }}
+                        </p>
+                        <div style="margin-top: 25px;">
+                            <p class="bold" style="text-transform: uppercase; margin-bottom: 2px;">
+                                {{ $signatories['recommending']['name'] }}
+                            </p>
+                            <p>{{ $signatories['recommending']['position'] }}</p>
+                        </div>
+                    </td>
+
+                    {{-- Right: Approved (slightly lower, left-aligned inside right cell) --}}
+                    <td width="50%" align="left" valign="bottom" style="padding-top: 70px; border: none;">
+                        <p class="bold" style="margin-bottom: 30px; font-weight: bold;">
+                            {{ $signatories['approved']['label'] }}
+                        </p>
+                        <div style="margin-top: 25px;">
+                            <p class="bold" style="text-transform: uppercase; margin-bottom: 2px;">
+                                {{ $signatories['approved']['name'] }}
+                            </p>
+                            <p>{{ $signatories['approved']['position'] }}</p>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        @else
+            {{-- Single signatory layout (within province) --}}
+            @foreach ($signatories as $key => $signatory)
+                <p class="bold" style="{{ $loop->first ? '' : 'margin-top: 40px;' }}">
+                    {{ $signatory['label'] }}
+                </p>
+                <div style="margin-top: 10px;">
+                    <p class="bold" style="text-transform: uppercase;">
+                        {{ $signatory['name'] }}
+                    </p>
+                    <p>{{ $signatory['position'] }}</p>
+                </div>
+            @endforeach
+        @endif
     </div>
-
-
-
 
 @endsection
