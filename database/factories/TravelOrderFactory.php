@@ -44,16 +44,8 @@ class TravelOrderFactory extends Factory
             ->values()
             ->all();
 
-            // Random boolean helper for shorter syntax
+        // Random boolean helper
         $b = fn() => $this->faker->boolean(70); // 70% chance true
-
-        // Random fund source data
-        $fundSources = [
-            'general_fund' => $b(),
-            'project_funds' => $b(),
-            'project_funds_details' => $this->faker->randomElement(['SIDLAK', 'STARBOOKS', 'CEST', 'SMART CITY', null]),
-            'others' => $this->faker->optional(0.3)->word(), // 30% chance of having an "Others" text
-        ];
 
         // Random categories data
         $categories = [
@@ -73,27 +65,42 @@ class TravelOrderFactory extends Factory
                 'enabled' => $b(),
                 'official_vehicle' => $b(),
                 'public_conveyance' => $b(),
-                'public_conveyance_text' => $this->faker->optional($weight = 0.5)->randomElement(['Bus', 'Airplane', 'Taxi', 'Van']),
+                'public_conveyance_text' => $this->faker->optional(0.5)->randomElement(['Bus', 'Airplane', 'Taxi', 'Van']),
             ],
             'others_enabled' => $b(),
         ];
+
+        // Random fund source selection
+        $fundSources = [
+            'General Fund',
+            'Project Funds',
+            'Others',
+        ];
+
+        $fundSource = $this->faker->randomElement($fundSources);
+        $fundDetails = '';
+
+        if ($fundSource === 'Project Funds') {
+            $fundDetails = $this->faker->randomElement(['SIDLAK', 'STARBOOKS', 'CEST', 'SMART CITY']);
+        } elseif ($fundSource === 'Others') {
+            $fundDetails = $this->faker->randomElement(['LGU Counterpart', 'Private Sponsorship', 'Personal Contribution']);
+        }
 
         return [
             'travel_order_no' => 'SDN-' . $this->faker->unique()->numberBetween(1000, 9999),
             'filing_date' => $this->faker->date(),
             'series' => '2025',
             'name' => $selectedTravelers,
-
             'destination' => $destination,
             'inclusive_dates' => 'November ' . $this->faker->numberBetween(1, 5) . ', 2025',
             'purpose' => 'To conduct project monitoring and coordination with local government partners.',
-
-            // Simplified expenses structure
+            'fund_source' => $fundSource,
+            'fund_details' => $fundDetails,
             'expenses' => [
                 'categories' => $categories,
-                'fund_sources' => $fundSources,
+                'fund_source' => $fundSource,   // ✅ correct key
+                'fund_details' => $fundDetails, // ✅ correct key
             ],
-
             'remarks' => 'Liquidation of travel expenses should follow DOST guidelines and be submitted within seven (7) days after completion of travel.',
             'approved_by' => 'MR. RICARDO N. VARELA',
             'approved_position' => 'OIC, PSTO-SDN',

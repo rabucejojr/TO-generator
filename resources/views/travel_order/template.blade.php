@@ -184,11 +184,13 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
     @php
         $mark = 'X';
 
-        // Top-level fund details and source
-        $fundSource = strtolower(trim($travelOrder->fund_source ?? ''));
-        $fundDetails = $travelOrder->fund_details ?? null;
+        // Always prefer database columns, fallback to JSON only if empty
+        $fundSource = strtolower(
+            trim($travelOrder->fund_source ?? data_get($travelOrder->expenses, 'fund_source', '')),
+        );
+        $fundDetails = trim($travelOrder->fund_details ?? data_get($travelOrder->expenses, 'fund_details', ''));
 
-        // Flexible mapping — handles "general fund", "project", "others", etc.
+        // Determine active fund for use in expense section
         $activeFund = match (true) {
             str_contains($fundSource, 'general') => 'general',
             str_contains($fundSource, 'project') => 'project',
@@ -196,6 +198,8 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             default => null,
         };
     @endphp
+
+
 
     <table class="no-border" style="margin-bottom:10px; width:100%;">
         <tr class="bold center">
@@ -210,25 +214,20 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             {{-- General Fund --}}
             <td class="no-border fund-header" style="vertical-align: top;">
                 <span class="checkbox">
-                    {!! strtolower($fundSource) === 'general fund' || strtolower($fundSource) === 'general' ? $mark : '&nbsp;' !!}
+                    {!! str_contains(strtolower($fundSource), 'general') ? $mark : '&nbsp;' !!}
                 </span>
                 General Fund
-                @if (!empty($fundDetails) && (strtolower($fundSource) === 'general fund' || strtolower($fundSource) === 'general'))
-                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
-                        ({{ strtoupper($fundDetails) }})
-                    </div>
-                @endif
             </td>
 
             {{-- Project Funds --}}
             <td class="no-border fund-header" style="vertical-align: top;">
                 <span class="checkbox">
-                    {!! strtolower($fundSource) === 'project funds' || strtolower($fundSource) === 'project' ? $mark : '&nbsp;' !!}
+                    {!! str_contains(strtolower($fundSource), 'project') ? $mark : '&nbsp;' !!}
                 </span>
                 Project Funds
-                @if (!empty($fundDetails) && (strtolower($fundSource) === 'project funds' || strtolower($fundSource) === 'project'))
-                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
-                        ({{ strtoupper($fundDetails) }})
+                @if (!empty($travelOrder->fund_details) && str_contains(strtolower($fundSource), 'project'))
+                    <div style="margin-top: 3px; font-size: 9pt; text-align: center;">
+                        <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong>
                     </div>
                 @endif
             </td>
@@ -236,16 +235,17 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             {{-- Others --}}
             <td class="no-border fund-header" style="vertical-align: top;">
                 <span class="checkbox">
-                    {!! strtolower($fundSource) === 'others' || strtolower($fundSource) === 'other' ? $mark : '&nbsp;' !!}
+                    {!! str_contains(strtolower($fundSource), 'other') ? $mark : '&nbsp;' !!}
                 </span>
                 Others
-                @if (!empty($fundDetails) && (strtolower($fundSource) === 'others' || strtolower($fundSource) === 'other'))
-                    <div style="margin-top: 2px; font-size: 9pt; text-align: center;">
-                        ({{ strtoupper($fundDetails) }})
+                @if (!empty($travelOrder->fund_details) && str_contains(strtolower($fundSource), 'other'))
+                    <div style="margin-top: 3px; font-size: 9pt; text-align: center;">
+                        <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong>
                     </div>
                 @endif
             </td>
         </tr>
+
 
         {{-- ACTUAL EXPENSES --}}
         <tr>

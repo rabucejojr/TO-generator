@@ -112,7 +112,7 @@ class TravelOrder extends Model
      */
     public function getFundSourceSummaryAttribute(): string
     {
-        $source = $this->active_fund_source;
+        $source = $this->fund_source;
         $details = $this->fund_details;
 
         if (!$source) {
@@ -237,6 +237,62 @@ public function getSignatoriesAttribute(): array
         ],
     ];
 }
+// protected static function booted()
+// {
+//     // 🔄 When saving — make sure the JSON stays in sync with the column values
+//     static::saving(function ($travelOrder) {
+//         $expenses = $travelOrder->expenses ?? [];
+
+//         // merge fund_source and fund_details into expenses JSON
+//         $travelOrder->expenses = array_merge($expenses, [
+//             'fund_source'  => $travelOrder->fund_source,
+//             'fund_details' => $travelOrder->fund_details,
+//         ]);
+//     });
+
+//     // 🔄 When retrieved — make sure columns stay in sync with JSON if they were missing
+//     static::retrieved(function ($travelOrder) {
+//         $expenses = $travelOrder->expenses ?? [];
+
+//         // only overwrite if columns are null or empty
+//         if (empty($travelOrder->fund_source) && isset($expenses['fund_source'])) {
+//             $travelOrder->fund_source = $expenses['fund_source'];
+//         }
+
+//         if (empty($travelOrder->fund_details) && isset($expenses['fund_details'])) {
+//             $travelOrder->fund_details = $expenses['fund_details'];
+//         }
+//     });
+// }
+
+protected static function booted()
+{
+    // 🔄 When saving — keep expenses JSON in sync with fund_source & fund_details
+    static::saving(function ($travelOrder) {
+        $expenses = $travelOrder->expenses ?? [];
+
+        // Merge or overwrite fund info into the expenses JSON
+        $travelOrder->expenses = array_merge($expenses, [
+            'fund_source'  => $travelOrder->fund_source,
+            'fund_details' => $travelOrder->fund_details,
+        ]);
+    });
+
+    // 🔄 When retrieved — make sure model columns reflect JSON if missing
+    static::retrieved(function ($travelOrder) {
+        $expenses = $travelOrder->expenses ?? [];
+
+        if (empty($travelOrder->fund_source) && isset($expenses['fund_source'])) {
+            $travelOrder->fund_source = $expenses['fund_source'];
+        }
+
+        if (empty($travelOrder->fund_details) && isset($expenses['fund_details'])) {
+            $travelOrder->fund_details = $expenses['fund_details'];
+        }
+    });
+}
+
+
 
 
 }

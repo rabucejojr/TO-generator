@@ -22,7 +22,9 @@ class TravelOrderController extends Controller
      */
     public function create()
     {
-        return view('travel_order.create');
+        // return view('travel_order.create');
+        $travelOrder = new TravelOrder(); // empty model instance
+        return view('travel_order.create', compact('travelOrder'));
     }
 
     /**
@@ -33,201 +35,161 @@ class TravelOrderController extends Controller
         return view('travel_order.edit', compact('travelOrder'));
     }
 
-public function store(Request $request, TravelOrder $travelOrder)
-{
-    $validated = $request->validate([
-        'name' => 'required|array|min:1',
-        'name.*.name' => 'required|string|max:255',
-        'name.*.position' => 'nullable|string|max:255',
-        'name.*.agency' => 'nullable|string|max:255',
-        'destination' => 'required|string|max:255',
-        'inclusive_dates' => 'required|string|max:255',
-        'purpose' => 'required|string',
-        'scope' => 'nullable|string|in:within,outside',
-        'expenses' => 'nullable|array',
-        'fund_source' => 'string|in:General Fund,Project Funds,Others',
-        'fund_details' => 'string|max:255',
-    ]);
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|array|min:1',
+            'name.*.name' => 'required|string|max:255',
+            'name.*.position' => 'nullable|string|max:255',
+            'name.*.agency' => 'nullable|string|max:255',
+            'destination' => 'required|string|max:255',
+            'inclusive_dates' => 'required|string|max:255',
+            'purpose' => 'required|string',
+            'scope' => 'nullable|string|in:within,outside',
+            'expenses' => 'nullable|array',
+            'fund_source' => 'required|string|in:General Fund,Project Funds,Others',
+            'fund_details' => 'nullable|string|max:255',
+        ]);
 
-    /* -------------------------------
-     * Normalize categories
-     * ------------------------------- */
-    $categories = array_replace_recursive([
-        'actual' => [
-            'enabled' => false,
-            'accommodation' => false,
-            'meals_food' => false,
-            'incidental_expenses' => false,
-        ],
-        'per_diem' => [
-            'enabled' => false,
-            'accommodation' => false,
-            'subsistence' => false,
-            'incidental_expenses' => false,
-        ],
-        'transportation' => [
-            'enabled' => false,
-            'official_vehicle' => false,
-            'public_conveyance' => false,
-            'public_conveyance_text' => '',
-        ],
-        'others_enabled' => false,
-    ], $request->input('expenses.categories', []));
+        /* -------------------------------
+        * Normalize expense categories
+        * ------------------------------- */
+        $categories = array_replace_recursive([
+            'actual' => [
+                'enabled' => false,
+                'accommodation' => false,
+                'meals_food' => false,
+                'incidental_expenses' => false,
+            ],
+            'per_diem' => [
+                'enabled' => false,
+                'accommodation' => false,
+                'subsistence' => false,
+                'incidental_expenses' => false,
+            ],
+            'transportation' => [
+                'enabled' => false,
+                'official_vehicle' => false,
+                'public_conveyance' => false,
+                'public_conveyance_text' => '',
+            ],
+            'others_enabled' => false,
+        ], $request->input('expenses.categories', []));
 
-    $expenses = [
-        'categories' => $categories,
-    ];
-    $fundSource = $request->input('fund_source');
-    $fundDetails = $request->input('fund_details');
-    /* -------------------------------
-     * Generate Travel Order Number
-     * ------------------------------- */
-    $series = now()->year;
-    $lastOrder = TravelOrder::where('series', $series)
-        ->whereNotNull('travel_order_no')
-        ->orderByDesc('id')
-        ->first();
+        $expenses = [
+            'categories' => $categories,
+            'fund_source' => $validated['fund_source'],
+            'fund_details' => $validated['fund_details'] ?? '',
+        ];
 
-    if ($lastOrder && preg_match('/SDN-\d{4}-(\d+)/', $lastOrder->travel_order_no, $matches)) {
-        $lastNumber = (int) $matches[1];
-        $nextNumber = $lastNumber + 1;
-    } else {
-        $nextNumber = 114; // your preferred starting number
+        /* -------------------------------
+        * Generate Travel Order Number
+        * ------------------------------- */
+        $series = now()->year;
+        $lastOrder = TravelOrder::where('series', $series)
+            ->whereNotNull('travel_order_no')
+            ->orderByDesc('id')
+            ->first();
+
+        $nextNumber = $lastOrder && preg_match('/SDN-\d{4}-(\d+)/', $lastOrder->travel_order_no, $matches)
+            ? (int) $matches[1] + 1
+            : 114;
+
+        $travelOrderNo = sprintf('SDN-%s-%04d', $series, $nextNumber);
+
+        /* -------------------------------
+        * Determine signatories
+        * ------------------------------- */
+        $scope = $request->input('scope', 'within');
+        // $travelOrder->applySignatories(); // you can call this after create if needed
+
+        /* -------------------------------
+        * Create Travel Order
+        * ------------------------------- */
+        $travelOrder = TravelOrder::create([
+            'travel_order_no' => $travelOrderNo,
+            'series' => $series,
+            'filing_date' => now(),
+            'name' => $validated['name'],
+            'destination' => $validated['destination'],
+            'inclusive_dates' => $validated['inclusive_dates'],
+            'purpose' => $validated['purpose'],
+            'fund_source' => $validated['fund_source'],
+            'fund_details' => $validated['fund_details'] ?? '',
+            'expenses' => $expenses,
+            'scope' => $scope,
+        ]);
+
+        $travelOrder->applySignatories();
+
+        return redirect()
+            ->route('travel_order.edit', $travelOrder)
+            ->with('success', 'Travel Order created successfully.');
     }
 
-    $travelOrderNo = sprintf('SDN-%s-%04d', $series, $nextNumber);
+    public function update(Request $request, TravelOrder $travelOrder)
+    {
+        $validated = $request->validate([
+            'name' => 'required|array|min:1',
+            'destination' => 'required|string|max:255',
+            'inclusive_dates' => 'required|string|max:255',
+            'purpose' => 'required|string',
+            'scope' => 'nullable|string|in:within,outside',
+            'expenses' => 'nullable|array',
+            'fund_source' => 'nullable|string|in:General Fund,Project Funds,Others',
+            'fund_details' => 'nullable|string|max:255',
+        ]);
 
+        /* -------------------------------
+        * Normalize expense categories
+        * ------------------------------- */
+        $categories = array_replace_recursive([
+            'actual' => [
+                'enabled' => false,
+                'accommodation' => false,
+                'meals_food' => false,
+                'incidental_expenses' => false,
+            ],
+            'per_diem' => [
+                'enabled' => false,
+                'accommodation' => false,
+                'subsistence' => false,
+                'incidental_expenses' => false,
+            ],
+            'transportation' => [
+                'enabled' => false,
+                'official_vehicle' => false,
+                'public_conveyance' => false,
+                'public_conveyance_text' => '',
+            ],
+            'others_enabled' => false,
+        ], $request->input('expenses.categories', []));
 
-    /* -------------------------------
-     * Determine Signatories
-     * ------------------------------- */
-    $scope = $request->input('scope', 'within');
+        $expenses = [
+            'categories' => $categories,
+            'fund_source' => $validated['fund_source'],
+            'fund_details' => $validated['fund_details'] ?? '',
+        ];
 
-    // if ($scope === 'outside') {
-    //     $approvedBy = 'ENGR. NOEL M. AJOC';
-    //     $approvedPosition = 'Regional Director';
-    //     $recommendingApproval = [
-    //         'name' => 'MR. RICARDO N. VARELA',
-    //         'position' => 'OIC, PSTO-SDN',
-    //     ];
-    // } else {
-    //     $approvedBy = 'MR. RICARDO N. VARELA';
-    //     $approvedPosition = 'OIC, PSTO-SDN';
-    //     $recommendingApproval = null;
-    // }
-    $travelOrder->applySignatories();
+        $scope = $request->input('scope', 'within');
 
-    /* -------------------------------
-     * Create Travel Order
-     * ------------------------------- */
-    $travelOrder = TravelOrder::create([
-        'travel_order_no' => $travelOrderNo,
-        'series' => $series,
-        'filing_date' => now(),
-        'name' => $validated['name'],
-        'destination' => $validated['destination'],
-        'inclusive_dates' => $validated['inclusive_dates'],
-        'purpose' => $validated['purpose'],
-        'fund_source' => $fundSource,   // ✅ add this
-        'fund_details' => $fundDetails, // ✅ add this
-        'expenses' => $expenses,
-        'scope' => $scope,
-        // 'approved_by' => $approvedBy,
-        // 'approved_position' => $approvedPosition,
-        'regional_director' => $recommendingApproval['name'] ?? null,
-        'regional_position' => $recommendingApproval['position'] ?? null,
-    ]);
+        $travelOrder->update([
+            'name' => $validated['name'],
+            'destination' => $validated['destination'],
+            'inclusive_dates' => $validated['inclusive_dates'],
+            'purpose' => $validated['purpose'],
+            'expenses' => $expenses,
+            'fund_source' => $validated['fund_source'],
+            'fund_details' => $validated['fund_details'] ?? '',
+            'scope' => $scope,
+        ]);
 
-    // dd($expenses['categories']['actual']);
+        $travelOrder->applySignatories();
 
-    return redirect()
-        ->route('travel_order.edit', $travelOrder)
-        ->with('success', 'Travel Order created successfully.');
-}
-
-public function update(Request $request, TravelOrder $travelOrder)
-{
-    $validated = $request->validate([
-        'name' => 'required|array|min:1',
-        'destination' => 'required|string|max:255',
-        'inclusive_dates' => 'required|string|max:255',
-        'purpose' => 'required|string',
-        'scope' => 'nullable|string|in:within,outside',
-        'expenses' => 'nullable|array',
-        'fund_source' => 'nullable|string|in:General Fund,Project Funds,Others',
-        'fund_details' => 'nullable|string|max:255',
-    ]);
-
-    /* -------------------------------
-     * Normalize categories
-     * ------------------------------- */
-    $categories = array_replace_recursive([
-        'actual' => [
-            'enabled' => false,
-            'accommodation' => false,
-            'meals_food' => false,
-            'incidental_expenses' => false,
-        ],
-        'per_diem' => [
-            'enabled' => false,
-            'accommodation' => false,
-            'subsistence' => false,
-            'incidental_expenses' => false,
-        ],
-        'transportation' => [
-            'enabled' => false,
-            'official_vehicle' => false,
-            'public_conveyance' => false,
-            'public_conveyance_text' => '',
-        ],
-        'others_enabled' => false,
-    ], $request->input('expenses.categories', []));
-
-    $expenses = [
-        'categories' => $categories,
-    ];
-    $fundSource = $request->input('fund_source');
-    $fundDetails = $request->input('fund_details');
-
-    $scope = $request->input('scope', 'within');
-
-    // if ($scope === 'outside') {
-    //     $approvedBy = 'ENGR. NOEL M. AJOC';
-    //     $approvedPosition = 'Regional Director';
-    //     $recommendingApproval = [
-    //         'name' => 'MR. RICARDO N. VARELA',
-    //         'position' => 'OIC, PSTO-SDN',
-    //     ];
-    // } else {
-    //     $approvedBy = 'MR. RICARDO N. VARELA';
-    //     $approvedPosition = 'OIC, PSTO-SDN';
-    //     $recommendingApproval = null;
-    // }
-
-    $travelOrder->applySignatories();
-
-    $travelOrder->update([
-        'name' => $validated['name'],
-        'destination' => $validated['destination'],
-        'inclusive_dates' => $validated['inclusive_dates'],
-        'purpose' => $validated['purpose'],
-        'expenses' => $expenses,
-        'fund_source' => $fundSource,   // ✅ add this
-        'fund_details' => $fundDetails, // ✅ add this
-        'scope' => $scope,
-        // 'approved_by' => $approvedBy,
-        // 'approved_position' => $approvedPosition,
-        'regional_director' => $recommendingApproval['name'] ?? null,
-        'regional_position' => $recommendingApproval['position'] ?? null,
-    ]);
-
-    //test
-    // dd($request->expenses);
-
-    return redirect()
-        ->route('travel_order.edit', $travelOrder)
-        ->with('success', 'Travel Order updated successfully.');
-}
+        return redirect()
+            ->route('travel_order.edit', $travelOrder)
+            ->with('success', 'Travel Order updated successfully.');
+    }
 
     /**
      * Remove the specified travel order.

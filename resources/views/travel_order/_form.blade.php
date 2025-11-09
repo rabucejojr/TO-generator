@@ -85,14 +85,16 @@
     </div>
 </div>
 
-{{-- FUND SOURCES --}}
+{{-- FUND SOURCE --}}
 <div class="mt-8">
     <h3 class="text-md font-semibold text-gray-800 mb-3">Fund Source</h3>
+
     @php
-        $fundSource = $travelOrder->expenses['fund_source'] ?? '';
-        $fundDetails = $travelOrder->expenses['fund_details'] ?? '';
+        $fundSource = $travelOrder->fund_source ?? old('fund_source');
+        $fundDetails = $travelOrder->fund_details ?? old('fund_details');
     @endphp
 
+    {{-- Radio Buttons --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         {{-- General Fund --}}
         <label class="flex items-center space-x-2">
@@ -123,6 +125,7 @@
             class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">{{ old('fund_details', $fundDetails ?? '') }}</textarea>
     </div>
 </div>
+
 
 @push('scripts')
     <script>
@@ -327,6 +330,21 @@
             }
 
             attachRemoveHandlers();
+
+            const radios = document.querySelectorAll('input[name="fund_source"]');
+            const wrapper = document.getElementById('fund-details-wrapper');
+            const textarea = document.getElementById('fund-details');
+
+            radios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'Project Funds' || this.value === 'Others') {
+                        wrapper.classList.remove('hidden');
+                    } else {
+                        wrapper.classList.add('hidden');
+                        textarea.value = ''; // optional: clear field when switching back
+                    }
+                });
+            });
         });
     </script>
 @endpush

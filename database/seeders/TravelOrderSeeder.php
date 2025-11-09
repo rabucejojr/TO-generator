@@ -14,6 +14,6 @@ class TravelOrderSeeder extends Seeder
     public function run(): void
     {
         //
-        TravelOrder::factory()->count(10)->create();
+        TravelOrder::factory()->count(5)->create();
     }
 }
