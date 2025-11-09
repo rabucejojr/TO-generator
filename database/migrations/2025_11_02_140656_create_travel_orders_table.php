@@ -13,7 +13,7 @@ return new class extends Migration
 
             // Travel order identification
             $table->string('travel_order_no')->unique()->nullable();
-            $table->year('series')->default(date('Y'));
+            $table->year('series')->nullable();
             $table->date('filing_date')->nullable();
             $table->string('scope')->default('within'); // within or outside province
 

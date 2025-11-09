@@ -22,7 +22,7 @@ class TravelOrder extends Model
         'fund_details',
         'expenses',
         'remarks',
-        'scope',
+        'scope', // 'within' or 'outside'
         'approved_by',
         'approved_position',
         'regional_director',
@@ -35,6 +35,10 @@ class TravelOrder extends Model
         'expenses' => 'array',
     ];
 
+    /*--------------------------------------------------------------
+     | LOCATION HELPERS
+     --------------------------------------------------------------*/
+
     /**
      * Determine if the travel is outside Surigao del Norte.
      */
@@ -43,6 +47,10 @@ class TravelOrder extends Model
         $homeProvince = 'Surigao del Norte';
         return $this->destination && !str_contains(strtolower($this->destination), strtolower($homeProvince));
     }
+
+    /*--------------------------------------------------------------
+     | NAME HELPERS
+     --------------------------------------------------------------*/
 
     /**
      * Get comma-separated list of traveler names.
@@ -58,21 +66,15 @@ class TravelOrder extends Model
         return collect($names)->pluck('name')->filter()->implode(', ') ?: '—';
     }
 
-   /*--------------------------------------------------------------
+    /*--------------------------------------------------------------
      | FUND SOURCE HELPERS
      --------------------------------------------------------------*/
 
-    /**
-     * Get all fund sources safely
-     */
     public function getFundSourcesAttribute(): array
     {
         return $this->expenses['fund_sources'] ?? [];
     }
 
-    /**
-     * Determine which fund source is selected (General, Project, or Others)
-     */
     public function getActiveFundSourceAttribute(): ?string
     {
         $fund = $this->fund_sources;
@@ -88,10 +90,6 @@ class TravelOrder extends Model
         return null;
     }
 
-    /**
-     * Get fund details depending on active fund type
-     * Example: (CEST) or (LGU)
-     */
     public function getFundDetailsAttribute(): ?string
     {
         $fund = $this->fund_sources;
@@ -107,9 +105,6 @@ class TravelOrder extends Model
         return null;
     }
 
-    /**
-     * Get formatted string summary, e.g. "Project Funds (SIDLAK)"
-     */
     public function getFundSourceSummaryAttribute(): string
     {
         $source = $this->fund_source;
@@ -126,31 +121,19 @@ class TravelOrder extends Model
      | CATEGORY HELPERS
      --------------------------------------------------------------*/
 
-    /**
-     * Get all expense categories safely
-     */
     public function getCategoriesAttribute(): array
     {
         return $this->expenses['categories'] ?? [];
     }
 
-    /**
-     * Check if a category or sub-item is checked
-     * Example:
-     *   $travelOrder->isExpenseChecked('actual') → section enabled?
-     *   $travelOrder->isExpenseChecked('actual', 'accommodation') → sub-item?
-     */
     public function isExpenseChecked(string $section, ?string $subItem = null): bool
     {
-        // Safely access nested "categories" array
         $categories = data_get($this->expenses, 'categories', []);
 
-        // ✅ Handle flat keys like "others_enabled" (can be string, int, bool, or null)
         if (array_key_exists($section, $categories) && !is_array($categories[$section])) {
             return filter_var($categories[$section], FILTER_VALIDATE_BOOLEAN);
         }
 
-        // Handle nested expense sections (actual, per_diem, transportation)
         $cat = $categories[$section] ?? [];
 
         if ($subItem) {
@@ -160,57 +143,42 @@ class TravelOrder extends Model
         return filter_var(data_get($cat, 'enabled', false), FILTER_VALIDATE_BOOLEAN);
     }
 
-
-
-
-    /**
-     * Get public conveyance note if applicable
-     */
     public function getPublicConveyanceTextAttribute(): ?string
     {
         return $this->categories['transportation']['public_conveyance_text'] ?? null;
     }
 
-        /**
-     * Automatically apply correct signatories based on destination or scope.
-     *
-     * - Within Surigao del Norte → Approved by: Mr. Ricardo N. Varela
-     * - Outside Surigao del Norte → Recommending Approval: Mr. Varela, Approved by: Engr. Ajoc
-     */
-public function applySignatories(): void
-{
-    // Determine if the travel is outside the province
-    $isOutside = $this->scope === 'outside';
+    /*--------------------------------------------------------------
+     | SIGNATORIES LOGIC
+     --------------------------------------------------------------*/
 
-    if ($isOutside) {
-        // Outside Province
-        $this->approved_by = 'MR. RICARDO N. VARELA';
-        $this->approved_position = 'OIC, PSTO-SDN';
-        $this->regional_director = 'ENGR. NOEL M. AJOC';
-        $this->regional_position = 'Regional Director';
-    } else {
-        // Within Province
-        $this->approved_by = 'MR. RICARDO N. VARELA';
-        $this->approved_position = 'OIC, PSTO-SDN';
-        $this->regional_director = null;
-        $this->regional_position = null;
+    public function applySignatories(): void
+    {
+        $isOutside = $this->scope === 'outside';
+
+        if ($isOutside) {
+            // Outside Province
+            $this->approved_by = 'MR. RICARDO N. VARELA';
+            $this->approved_position = 'OIC, PSTO-SDN';
+            $this->regional_director = 'ENGR. NOEL M. AJOC';
+            $this->regional_position = 'Regional Director';
+        } else {
+            // Within Province
+            $this->approved_by = 'MR. RICARDO N. VARELA';
+            $this->approved_position = 'OIC, PSTO-SDN';
+            $this->regional_director = null;
+            $this->regional_position = null;
+        }
+
+        if ($this->exists) {
+            $this->save();
+        }
     }
 
-    if ($this->exists) {
-        $this->save();
-    }
-}
-
-    /**
- * Return structured signatory data ready for display.
- *
- * @return array
- */
     public function getSignatoriesAttribute(): array
     {
-        $this->applySignatories(); // auto-ensure it's up to date
+        $this->applySignatories();
 
-        // Outside province (with Recommending + Approved)
         if ($this->scope === 'outside') {
             return [
                 'recommending' => [
@@ -226,7 +194,6 @@ public function applySignatories(): void
             ];
         }
 
-        // Within province (Approved only)
         return [
             'approved' => [
                 'label' => 'Approved:',
@@ -236,62 +203,66 @@ public function applySignatories(): void
         ];
     }
 
-// protected static function booted()
-// {
-//     // 🔄 When saving — make sure the JSON stays in sync with the column values
-//     static::saving(function ($travelOrder) {
-//         $expenses = $travelOrder->expenses ?? [];
+    /*--------------------------------------------------------------
+     | MODEL EVENTS (SYNC + AUTO-NUMBER)
+     --------------------------------------------------------------*/
 
-//         // merge fund_source and fund_details into expenses JSON
-//         $travelOrder->expenses = array_merge($expenses, [
-//             'fund_source'  => $travelOrder->fund_source,
-//             'fund_details' => $travelOrder->fund_details,
-//         ]);
-//     });
+    protected static function booted()
+    {
+        // 🔄 Keep expenses JSON in sync with fund_source & fund_details
+        static::saving(function ($travelOrder) {
+            $expenses = $travelOrder->expenses ?? [];
 
-//     // 🔄 When retrieved — make sure columns stay in sync with JSON if they were missing
-//     static::retrieved(function ($travelOrder) {
-//         $expenses = $travelOrder->expenses ?? [];
+            $travelOrder->expenses = array_merge($expenses, [
+                'fund_source'  => $travelOrder->fund_source,
+                'fund_details' => $travelOrder->fund_details,
+            ]);
+        });
 
-//         // only overwrite if columns are null or empty
-//         if (empty($travelOrder->fund_source) && isset($expenses['fund_source'])) {
-//             $travelOrder->fund_source = $expenses['fund_source'];
-//         }
+        // 🔄 Reflect JSON data back into columns on retrieval
+        static::retrieved(function ($travelOrder) {
+            $expenses = $travelOrder->expenses ?? [];
 
-//         if (empty($travelOrder->fund_details) && isset($expenses['fund_details'])) {
-//             $travelOrder->fund_details = $expenses['fund_details'];
-//         }
-//     });
-// }
+            if (empty($travelOrder->fund_source) && isset($expenses['fund_source'])) {
+                $travelOrder->fund_source = $expenses['fund_source'];
+            }
 
-protected static function booted()
-{
-    // 🔄 When saving — keep expenses JSON in sync with fund_source & fund_details
-    static::saving(function ($travelOrder) {
-        $expenses = $travelOrder->expenses ?? [];
+            if (empty($travelOrder->fund_details) && isset($expenses['fund_details'])) {
+                $travelOrder->fund_details = $expenses['fund_details'];
+            }
+        });
 
-        // Merge or overwrite fund info into the expenses JSON
-        $travelOrder->expenses = array_merge($expenses, [
-            'fund_source'  => $travelOrder->fund_source,
-            'fund_details' => $travelOrder->fund_details,
-        ]);
-    });
+        // 🧠 Conditional Travel Order Numbering
+        static::creating(function ($travelOrder) {
+            if ($travelOrder->scope === 'within') {
+                $travelOrder->travel_order_no = self::generateTravelOrderNumber();
+            } else {
+                $travelOrder->travel_order_no = null;
+            }
+        });
+    }
 
-    // 🔄 When retrieved — make sure model columns reflect JSON if missing
-    static::retrieved(function ($travelOrder) {
-        $expenses = $travelOrder->expenses ?? [];
+    /**
+     * Generate incremental Travel Order number (e.g. 2025-SDN-0001)
+     */
+    protected static function generateTravelOrderNumber(): string
+    {
+        $year = now()->format('Y');
 
-        if (empty($travelOrder->fund_source) && isset($expenses['fund_source'])) {
-            $travelOrder->fund_source = $expenses['fund_source'];
+        // Get the latest travel order for the current year only
+        $latest = self::whereNotNull('travel_order_no')
+            ->where('travel_order_no', 'like', "{$year}-%") // filter by year prefix
+            ->latest('id')
+            ->value('travel_order_no');
+
+        // Extract the numeric sequence (e.g. 0001)
+        $next = 1;
+        if ($latest) {
+            preg_match('/(\d{4})$/', $latest, $matches);
+            $next = isset($matches[1]) ? intval($matches[1]) + 1 : 1;
         }
 
-        if (empty($travelOrder->fund_details) && isset($expenses['fund_details'])) {
-            $travelOrder->fund_details = $expenses['fund_details'];
-        }
-    });
-}
-
-
-
-
+        // Format: YYYY-SDN-XXXX
+        return sprintf('%s-SDN-%04d', $year, $next);
+    }
 }

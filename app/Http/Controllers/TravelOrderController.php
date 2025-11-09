@@ -83,31 +83,13 @@ class TravelOrderController extends Controller
         ];
 
         /* -------------------------------
-        * Generate Travel Order Number
+        * Prepare travel order data
         * ------------------------------- */
         $series = now()->year;
-        $lastOrder = TravelOrder::where('series', $series)
-            ->whereNotNull('travel_order_no')
-            ->orderByDesc('id')
-            ->first();
-
-        $nextNumber = $lastOrder && preg_match('/SDN-\d{4}-(\d+)/', $lastOrder->travel_order_no, $matches)
-            ? (int) $matches[1] + 1
-            : 114;
-
-        $travelOrderNo = sprintf('SDN-%s-%04d', $series, $nextNumber);
-
-        /* -------------------------------
-        * Determine signatories
-        * ------------------------------- */
         $scope = $request->input('scope', 'within');
-        // $travelOrder->applySignatories(); // you can call this after create if needed
 
-        /* -------------------------------
-        * Create Travel Order
-        * ------------------------------- */
         $travelOrder = TravelOrder::create([
-            'travel_order_no' => $travelOrderNo,
+            // travel_order_no is handled automatically in the model (booted)
             'series' => $series,
             'filing_date' => now(),
             'name' => $validated['name'],

@@ -89,8 +89,10 @@
     <table class="no-border">
         <tr>
             <td class="no-border bold" width="70%">
-                LOCAL TRAVEL ORDER No. {{ $travelOrder->travel_order_no ?? '__________' }}
+                LOCAL TRAVEL ORDER No.
+                {{ $travelOrder->travel_order_no ?: '__________' }}
             </td>
+
             <td class="no-border bold" width="30%">
                 @php
                     $filingDate = $travelOrder->filing_date
