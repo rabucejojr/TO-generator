@@ -177,66 +177,65 @@ class TravelOrder extends Model
      * - Within Surigao del Norte → Approved by: Mr. Ricardo N. Varela
      * - Outside Surigao del Norte → Recommending Approval: Mr. Varela, Approved by: Engr. Ajoc
      */
-    public function applySignatories(): void
-    {
-        // Detect if travel is outside province using model logic
-        $isOutside = $this->is_outside_province;
+public function applySignatories(): void
+{
+    // Determine if the travel is outside the province
+    $isOutside = $this->scope === 'outside';
 
-        if ($isOutside) {
-            // Outside province
-            $this->approved_by = 'MR. RICARDO N. VARELA';
-            $this->approved_position = 'OIC, PSTO-SDN';
-            $this->regional_director = 'ENGR. NOEL M. AJOC';
-            $this->regional_position = 'Regional Director, DOST Caraga';
-        } else {
-            // Within province
-            $this->approved_by = 'MR. RICARDO N. VARELA';
-            $this->approved_position = 'OIC, PSTO-SDN';
-            $this->regional_director = null;
-            $this->regional_position = null;
-        }
-
-        // Save immediately if model already exists
-        if ($this->exists) {
-            $this->save();
-        }
+    if ($isOutside) {
+        // Outside Province
+        $this->approved_by = 'MR. RICARDO N. VARELA';
+        $this->approved_position = 'OIC, PSTO-SDN';
+        $this->regional_director = 'ENGR. NOEL M. AJOC';
+        $this->regional_position = 'Regional Director';
+    } else {
+        // Within Province
+        $this->approved_by = 'MR. RICARDO N. VARELA';
+        $this->approved_position = 'OIC, PSTO-SDN';
+        $this->regional_director = null;
+        $this->regional_position = null;
     }
+
+    if ($this->exists) {
+        $this->save();
+    }
+}
 
     /**
  * Return structured signatory data ready for display.
  *
  * @return array
  */
-public function getSignatoriesAttribute(): array
-{
-    $this->applySignatories(); // ensure it's up to date
+    public function getSignatoriesAttribute(): array
+    {
+        $this->applySignatories(); // auto-ensure it's up to date
 
-    if ($this->is_outside_province) {
+        // Outside province (with Recommending + Approved)
+        if ($this->scope === 'outside') {
+            return [
+                'recommending' => [
+                    'label' => 'Recommending Approval:',
+                    'name' => $this->approved_by ?? 'MR. RICARDO N. VARELA',
+                    'position' => $this->approved_position ?? 'OIC, PSTO-SDN',
+                ],
+                'approved' => [
+                    'label' => 'Approved:',
+                    'name' => $this->regional_director ?? 'MR. RICARDO N. VARELA',
+                    'position' => $this->regional_position ?? 'OIC, PSTO-SDN',
+                ],
+            ];
+        }
+
+        // Within province (Approved only)
         return [
-            'recommending' => [
-                'label' => 'Recommending Approval:',
-                'name' => $this->approved_by ?? 'MR. RICARDO N. VARELA',
-                'position' => $this->approved_position ?? 'OIC, PSTO-SDN',
-
-                // 'name' => $this->regional_director ?? 'MR. RICARDO N. VARELA',
-                // 'position' => $this->regional_position ?? 'OIC, PSTO-SDN',
-            ],
             'approved' => [
                 'label' => 'Approved:',
-                'name' => $this->regional_director ?? 'ENGR. NOEL M. AJOC',
-                'position' => $this->approved_position ?? 'Regional Director, DOST Caraga',
+                'name' => $this->approved_by ?? 'MR. RICARDO N. VARELA',
+                'position' => $this->approved_position ?? 'OIC, PSTO-SDN',
             ],
         ];
     }
 
-    return [
-        'approved' => [
-            'label' => 'Approved:',
-            'name' => $this->approved_by ?? 'MR. RICARDO N. VARELA',
-            'position' => $this->approved_position ?? 'OIC, PSTO-SDN',
-        ],
-    ];
-}
 // protected static function booted()
 // {
 //     // 🔄 When saving — make sure the JSON stays in sync with the column values

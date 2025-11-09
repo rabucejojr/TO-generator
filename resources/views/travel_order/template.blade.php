@@ -391,14 +391,14 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
     </p>
 
     {{-- SIGNATURE --}}
-    <div class="signature" style="margin-top: 35px; page-break-inside: avoid;">
+    <div class="signature" style="margin-top: 20px; page-break-inside: avoid;">
         @foreach ($travelOrder->signatories as $key => $signatory)
             @if ($key === 'recommending')
                 <p class="bold">{{ $signatory['label'] }}</p>
             @else
                 <p class="bold" style="margin-top: 40px;">{{ $signatory['label'] }}</p>
             @endif
-            <div style="margin-top: 25px;">
+            <div style="margin-top: 10px;">
                 <p class="bold" style="text-transform: uppercase;">{{ $signatory['name'] }}</p>
                 <p>{{ $signatory['position'] }}</p>
             </div>
