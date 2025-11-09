@@ -3,14 +3,20 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\TravelOrder;
 
+/**
+ * @extends Factory<\App\Models\TravelOrder>
+ */
 class TravelOrderFactory extends Factory
 {
     public function definition(): array
     {
-        // Randomize if this travel is outside or within Surigao del Norte
-        $outside = $this->faker->boolean(50);
-        $destination = $outside
+        // Randomize travel scope
+        $isOutside = $this->faker->boolean(50);
+        $scope = $isOutside ? 'outside' : 'within';
+
+        $destination = $isOutside
             ? $this->faker->city() . ', Agusan del Norte'
             : $this->faker->city() . ', Surigao del Norte';
 
@@ -31,7 +37,7 @@ class TravelOrderFactory extends Factory
         $selectedTravelers = collect($names)
             ->shuffle()
             ->take(rand(1, 2))
-            ->map(fn ($travelerName) => [
+            ->map(fn($travelerName) => [
                 'name' => $travelerName,
                 'position' => $this->faker->randomElement([
                     'Project Technical Assistant I',
@@ -44,10 +50,10 @@ class TravelOrderFactory extends Factory
             ->values()
             ->all();
 
-        // Random boolean helper
-        $b = fn() => $this->faker->boolean(70); // 70% chance true
+        // Random boolean helper (70% true)
+        $b = fn() => $this->faker->boolean(70);
 
-        // Random categories data
+        // Random expense categories
         $categories = [
             'actual' => [
                 'enabled' => $b(),
@@ -65,18 +71,15 @@ class TravelOrderFactory extends Factory
                 'enabled' => $b(),
                 'official_vehicle' => $b(),
                 'public_conveyance' => $b(),
-                'public_conveyance_text' => $this->faker->optional(0.5)->randomElement(['Bus', 'Airplane', 'Taxi', 'Van']),
+                'public_conveyance_text' => $this->faker->optional(0.5)->randomElement([
+                    'Bus', 'Airplane', 'Taxi', 'Van'
+                ]),
             ],
             'others_enabled' => $b(),
         ];
 
-        // Random fund source selection
-        $fundSources = [
-            'General Fund',
-            'Project Funds',
-            'Others',
-        ];
-
+        // Random fund source
+        $fundSources = ['General Fund', 'Project Funds', 'Others'];
         $fundSource = $this->faker->randomElement($fundSources);
         $fundDetails = '';
 
@@ -86,26 +89,52 @@ class TravelOrderFactory extends Factory
             $fundDetails = $this->faker->randomElement(['LGU Counterpart', 'Private Sponsorship', 'Personal Contribution']);
         }
 
+        // Set current series (year)
+        $series = now()->year;
+
+        // ✅ Generate Travel Order Number (only for "within")
+        $travelOrderNo = null;
+        if ($scope === 'within') {
+            $latest = TravelOrder::whereNotNull('travel_order_no')
+                ->where('travel_order_no', 'like', "{$series}-%")
+                ->latest('id')
+                ->value('travel_order_no');
+
+            $next = 1;
+            if ($latest && preg_match('/(\d{4})$/', $latest, $matches)) {
+                $next = intval($matches[1]) + 1;
+            }
+
+            $travelOrderNo = sprintf('%s-SDN-%04d', $series, $next);
+        }
+
+        // ✅ Apply signatories dynamically
+        $approvedBy = 'MR. RICARDO N. VARELA';
+        $approvedPosition = 'OIC, PSTO-SDN';
+        $regionalDirector = $scope === 'outside' ? 'ENGR. NOEL M. AJOC' : null;
+        $regionalPosition = $scope === 'outside' ? 'Regional Director' : null;
+
         return [
-            'travel_order_no' => 'SDN-' . $this->faker->unique()->numberBetween(1000, 9999),
+            'travel_order_no' => $travelOrderNo,
             'filing_date' => $this->faker->date(),
-            'series' => '2025',
+            'series' => $series,
+            'scope' => $scope,
             'name' => $selectedTravelers,
             'destination' => $destination,
-            'inclusive_dates' => 'November ' . $this->faker->numberBetween(1, 5) . ', 2025',
+            'inclusive_dates' => 'November ' . $this->faker->numberBetween(1, 5) . ', ' . $series,
             'purpose' => 'To conduct project monitoring and coordination with local government partners.',
             'fund_source' => $fundSource,
             'fund_details' => $fundDetails,
             'expenses' => [
                 'categories' => $categories,
-                'fund_source' => $fundSource,   // ✅ correct key
-                'fund_details' => $fundDetails, // ✅ correct key
+                'fund_source' => $fundSource,
+                'fund_details' => $fundDetails,
             ],
             'remarks' => 'Liquidation of travel expenses should follow DOST guidelines and be submitted within seven (7) days after completion of travel.',
-            'approved_by' => 'MR. RICARDO N. VARELA',
-            'approved_position' => 'OIC, PSTO-SDN',
-            'regional_director' => 'ENGR. NOEL M. AJOC',
-            'regional_position' => 'Regional Director',
+            'approved_by' => $approvedBy,
+            'approved_position' => $approvedPosition,
+            'regional_director' => $regionalDirector,
+            'regional_position' => $regionalPosition,
         ];
     }
 }
