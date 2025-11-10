@@ -169,7 +169,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
         $destinationList = collect($destinations)->filter()->implode(', ');
     @endphp
 
-    <table class="no-border mb-2" style="padding-bottom: 20px;">
+    <table class="no-border mb-2" style="padding-bottom: 5px;">
         <tr class="bold center">
             <th class="no-border underline" width="33%">Destination</th>
             <th class="no-border underline" width="33%">Inclusive Date/s of Travel</th>
