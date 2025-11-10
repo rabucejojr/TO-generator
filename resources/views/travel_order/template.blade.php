@@ -48,7 +48,7 @@
             width: 11px;
             height: 11px;
             border: 1px solid #000;
-            margin-right: 5px;
+            margin-right: 3px;
             text-align: center;
             /* font-size: 9pt; */
             line-height: 10pt;
@@ -408,7 +408,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
     </div> --}}
 
     {{-- SIGNATURE --}}
-    <div class="signature" style="margin-top: 10px; page-break-inside: avoid; width: 100%; font-size: 10pt;">
+    <div class="signature" style="margin-top: 20px; page-break-inside: avoid; width: 100%; font-size: 10pt;">
         @php
             $signatories = $travelOrder->signatories;
             $hasRecommending = isset($signatories['recommending']);
@@ -451,7 +451,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 <p class="bold" style="{{ $loop->first ? '' : 'margin-top: 40px;' }}">
                     {{ $signatory['label'] }}
                 </p>
-                <div style="margin-top: 10px;">
+                <div style="margin-top: 30px;">
                     <p class="bold" style="text-transform: uppercase;">
                         {{ $signatory['name'] }}
                     </p>
