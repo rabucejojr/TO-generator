@@ -41,13 +41,29 @@
                 <td style="width: 100px; text-align: right; border: none;">
                     <img src="{{ $logoSrc }}" alt="DOST Logo" style="height: 60px; width: auto;">
                 </td>
+
                 <!-- Form Header -->
-                <td style="text-align: center; border: none;">
-                    <p style="margin: 20px; font-size: 16px; font-weight: bold; text-align:left;">@yield('form_title')</p>
+                <td style="text-align: left; border: none; vertical-align: middle;">
+                    <p style="margin: 0; font-size: 16px; font-weight: bold; padding-bottom: 4px;">
+                        @yield('form_title')
+                    </p>
+
+                    <!-- Local Travel Order Info -->
+                    <div style="margin-top: 4px;font-size: 12px;">
+                        LOCAL TRAVEL ORDER No.
+                        {{ $travelOrder->travel_order_no ?: '______________' }}
+                        <span style="margin-left: 130px;">
+                            @php
+                                $filingDate = $travelOrder->filing_date
+                                    ? \Carbon\Carbon::parse($travelOrder->filing_date)->format('F j, Y')
+                                    : '__________';
+                            @endphp
+                            Date: {{ $filingDate }}
+                        </span>
+                    </div>
                 </td>
             </tr>
         </table>
-
 
 
         <!-- Form Content -->

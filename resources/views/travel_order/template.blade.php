@@ -88,22 +88,7 @@
     {{-- HEADER --}}
     <table class="no-border">
         <tr>
-            <td class="no-border bold" width="70%">
-                LOCAL TRAVEL ORDER No.
-                {{ $travelOrder->travel_order_no ?: '__________' }}
-            </td>
-
-            <td class="no-border bold" width="30%">
-                @php
-                    $filingDate = $travelOrder->filing_date
-                        ? \Carbon\Carbon::parse($travelOrder->filing_date)->format('F j, Y')
-                        : '__________';
-                @endphp
-                Date: {{ $filingDate }}
-            </td>
-        </tr>
-        <tr>
-            <td class="no-border bold" colspan="2">
+            <td class="no-border bold" colspan="2" style="padding:none;">
                 Series of {{ $travelOrder->series ?? '____' }}
             </td>
         </tr>
