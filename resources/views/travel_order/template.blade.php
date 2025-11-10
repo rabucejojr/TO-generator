@@ -414,7 +414,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
     </div> --}}
 
     {{-- SIGNATURE --}}
-    <div class="signature" style="margin-top: 20px; page-break-inside: avoid; width: 100%; font-size: 10pt;">
+    <div class="signature" style="margin-top: 25px; page-break-inside: avoid; width: 100%; font-size: 10pt;">
         @php
             $signatories = $travelOrder->signatories;
             $hasRecommending = isset($signatories['recommending']);
@@ -454,7 +454,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
         @else
             {{-- Single signatory layout (within province) --}}
             @foreach ($signatories as $key => $signatory)
-                <p class="bold" style="{{ $loop->first ? '' : 'margin-top: 40px;' }}">
+                <p class="bold" style="{{ $loop->first ? '' : 'margin-top: 60px;' }}">
                     {{ $signatory['label'] }}
                 </p>
                 <div style="margin-top: 30px;">
