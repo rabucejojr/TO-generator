@@ -35,7 +35,7 @@
         @endphp
 
         <!-- Header Table -->
-        <table width="100%" style="border: none; margin-bottom: 10px;">
+        <table width="100%" style="border: none; margin-bottom: 5px;">
             <tr>
                 <!-- Left: Logo -->
                 <td style="width: 100px; text-align: right; border: none;">

@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class TravelOrder extends Model
@@ -14,7 +13,7 @@ class TravelOrder extends Model
         'travel_order_no',
         'filing_date',
         'series',
-        'name', // array containing name, position, agency
+        'name',
         'destination',
         'inclusive_dates',
         'purpose',
@@ -22,7 +21,7 @@ class TravelOrder extends Model
         'fund_details',
         'expenses',
         'remarks',
-        'scope', // 'within' or 'outside'
+        'scope',
         'approved_by',
         'approved_position',
         'regional_director',
@@ -38,10 +37,6 @@ class TravelOrder extends Model
     /*--------------------------------------------------------------
      | LOCATION HELPERS
      --------------------------------------------------------------*/
-
-    /**
-     * Determine if the travel is outside Surigao del Norte.
-     */
     public function getIsOutsideProvinceAttribute(): bool
     {
         $homeProvince = 'Surigao del Norte';
@@ -49,66 +44,23 @@ class TravelOrder extends Model
     }
 
     /*--------------------------------------------------------------
-     | NAME HELPERS
+     | TRAVELER NAME HELPERS
      --------------------------------------------------------------*/
-
-    /**
-     * Get comma-separated list of traveler names.
-     */
     public function getNamesAttribute(): string
     {
         $names = is_array($this->name)
             ? $this->name
-            : (is_string($this->name)
-                ? json_decode($this->name, true)
-                : []);
-
+            : (is_string($this->name) ? json_decode($this->name, true) : []);
         return collect($names)->pluck('name')->filter()->implode(', ') ?: '—';
     }
 
     /*--------------------------------------------------------------
-     | FUND SOURCE HELPERS
+     | FUND SOURCE HELPERS (now column-based)
      --------------------------------------------------------------*/
-
-    public function getFundSourcesAttribute(): array
-    {
-        return $this->expenses['fund_sources'] ?? [];
-    }
-
-    public function getActiveFundSourceAttribute(): ?string
-    {
-        $fund = $this->fund_sources;
-
-        if (!empty($fund['general_fund'])) {
-            return 'General Fund';
-        } elseif (!empty($fund['project_funds'])) {
-            return 'Project Funds';
-        } elseif (!empty($fund['others'])) {
-            return 'Others';
-        }
-
-        return null;
-    }
-
-    public function getFundDetailsAttribute(): ?string
-    {
-        $fund = $this->fund_sources;
-
-        if (!empty($fund['project_funds']) && !empty($fund['project_funds_details'])) {
-            return $fund['project_funds_details'];
-        }
-
-        if (!empty($fund['others'])) {
-            return $fund['others'];
-        }
-
-        return null;
-    }
-
     public function getFundSourceSummaryAttribute(): string
     {
         $source = $this->fund_source;
-        $details = $this->fund_details;
+        $details = $this->attributes['fund_details'] ?? null;
 
         if (!$source) {
             return '—';
@@ -120,7 +72,6 @@ class TravelOrder extends Model
     /*--------------------------------------------------------------
      | CATEGORY HELPERS
      --------------------------------------------------------------*/
-
     public function getCategoriesAttribute(): array
     {
         return $this->expenses['categories'] ?? [];
@@ -149,21 +100,18 @@ class TravelOrder extends Model
     }
 
     /*--------------------------------------------------------------
-     | SIGNATORIES LOGIC
+     | SIGNATORIES
      --------------------------------------------------------------*/
-
     public function applySignatories(): void
     {
         $isOutside = $this->scope === 'outside';
 
         if ($isOutside) {
-            // Outside Province
             $this->approved_by = 'MR. RICARDO N. VARELA';
             $this->approved_position = 'OIC, PSTO-SDN';
             $this->regional_director = 'ENGR. NOEL M. AJOC';
             $this->regional_position = 'Regional Director';
         } else {
-            // Within Province
             $this->approved_by = 'MR. RICARDO N. VARELA';
             $this->approved_position = 'OIC, PSTO-SDN';
             $this->regional_director = null;
@@ -183,13 +131,13 @@ class TravelOrder extends Model
             return [
                 'recommending' => [
                     'label' => 'Recommending Approval:',
-                    'name' => $this->approved_by ?? 'MR. RICARDO N. VARELA',
-                    'position' => $this->approved_position ?? 'OIC, PSTO-SDN',
+                    'name' => $this->approved_by,
+                    'position' => $this->approved_position,
                 ],
                 'approved' => [
                     'label' => 'Approved:',
-                    'name' => $this->regional_director ?? 'MR. RICARDO N. VARELA',
-                    'position' => $this->regional_position ?? 'OIC, PSTO-SDN',
+                    'name' => $this->regional_director,
+                    'position' => $this->regional_position,
                 ],
             ];
         }
@@ -197,8 +145,8 @@ class TravelOrder extends Model
         return [
             'approved' => [
                 'label' => 'Approved:',
-                'name' => $this->approved_by ?? 'MR. RICARDO N. VARELA',
-                'position' => $this->approved_position ?? 'OIC, PSTO-SDN',
+                'name' => $this->approved_by,
+                'position' => $this->approved_position,
             ],
         ];
     }
@@ -206,7 +154,6 @@ class TravelOrder extends Model
     /*--------------------------------------------------------------
      | MODEL EVENTS (SYNC + AUTO-NUMBER)
      --------------------------------------------------------------*/
-
     protected static function booted()
     {
         // 🔄 Keep expenses JSON in sync with fund_source & fund_details
@@ -232,37 +179,37 @@ class TravelOrder extends Model
             }
         });
 
-        // 🧠 Conditional Travel Order Numbering
+        // 🧠 Auto-generate Travel Order Number only for "within" travels
         static::creating(function ($travelOrder) {
+            $year = now()->year;
+            $travelOrder->series = $year;
+
             if ($travelOrder->scope === 'within') {
-                $travelOrder->travel_order_no = self::generateTravelOrderNumber();
+                $travelOrder->travel_order_no = self::generateTravelOrderNumber($year);
             } else {
+                // ❌ Outside travels should have no number
                 $travelOrder->travel_order_no = null;
             }
         });
     }
 
     /**
-     * Generate incremental Travel Order number (e.g. 2025-SDN-0001)
+     * Generate incremental Travel Order number (e.g. SDN-2025-0001)
      */
-    protected static function generateTravelOrderNumber(): string
+    protected static function generateTravelOrderNumber(int $year): string
     {
-        $year = now()->format('Y');
-
-        // Get the latest travel order for the current year only
-        $latest = self::whereNotNull('travel_order_no')
-            ->where('travel_order_no', 'like', "{$year}-%") // filter by year prefix
+        // Find the latest "within province" travel order number for this year
+        $latest = self::where('scope', 'within')
+            ->whereNotNull('travel_order_no')
+            ->where('travel_order_no', 'like', "SDN-{$year}-%")
             ->latest('id')
             ->value('travel_order_no');
 
-        // Extract the numeric sequence (e.g. 0001)
         $next = 1;
-        if ($latest) {
-            preg_match('/(\d{4})$/', $latest, $matches);
-            $next = isset($matches[1]) ? intval($matches[1]) + 1 : 1;
+        if ($latest && preg_match('/(\d{4})$/', $latest, $matches)) {
+            $next = intval($matches[1]) + 1;
         }
 
-        // Format: YYYY-SDN-XXXX
-        return sprintf('%s-SDN-%04d', $year, $next);
+        return sprintf('SDN-%s-%04d', $year, $next);
     }
 }

@@ -76,21 +76,14 @@ class TravelOrderController extends Controller
             'others_enabled' => false,
         ], $request->input('expenses.categories', []));
 
-        $expenses = [
-            'categories' => $categories,
-            'fund_source' => $validated['fund_source'],
-            'fund_details' => $validated['fund_details'] ?? '',
-        ];
+        // Store only expense categories (no fund info duplication)
+        $expenses = ['categories' => $categories];
 
         /* -------------------------------
-        * Prepare travel order data
+        * Create the travel order
         * ------------------------------- */
-        $series = now()->year;
-        $scope = $request->input('scope', 'within');
-
         $travelOrder = TravelOrder::create([
-            // travel_order_no is handled automatically in the model (booted)
-            'series' => $series,
+            // 'series' => now()->year,
             'filing_date' => now(),
             'name' => $validated['name'],
             'destination' => $validated['destination'],
@@ -99,7 +92,7 @@ class TravelOrderController extends Controller
             'fund_source' => $validated['fund_source'],
             'fund_details' => $validated['fund_details'] ?? '',
             'expenses' => $expenses,
-            'scope' => $scope,
+            'scope' => $request->input('scope', 'within'),
         ]);
 
         $travelOrder->applySignatories();
@@ -122,9 +115,6 @@ class TravelOrderController extends Controller
             'fund_details' => 'nullable|string|max:255',
         ]);
 
-        /* -------------------------------
-        * Normalize expense categories
-        * ------------------------------- */
         $categories = array_replace_recursive([
             'actual' => [
                 'enabled' => false,
@@ -147,29 +137,23 @@ class TravelOrderController extends Controller
             'others_enabled' => false,
         ], $request->input('expenses.categories', []));
 
-        $expenses = [
-            'categories' => $categories,
-            'fund_source' => $validated['fund_source'],
-            'fund_details' => $validated['fund_details'] ?? '',
-        ];
-
-        $scope = $request->input('scope', 'within');
+        $expenses = ['categories' => $categories];
 
         $travelOrder->update([
             'name' => $validated['name'],
             'destination' => $validated['destination'],
             'inclusive_dates' => $validated['inclusive_dates'],
             'purpose' => $validated['purpose'],
-            'expenses' => $expenses,
             'fund_source' => $validated['fund_source'],
             'fund_details' => $validated['fund_details'] ?? '',
-            'scope' => $scope,
+            'expenses' => $expenses,
+            'scope' => $request->input('scope', 'within'),
         ]);
 
         $travelOrder->applySignatories();
 
         return redirect()
-            ->route('travel_order.index', $travelOrder)
+            ->route('travel_order.edit', $travelOrder)
             ->with('success', 'Travel Order updated successfully.');
     }
 

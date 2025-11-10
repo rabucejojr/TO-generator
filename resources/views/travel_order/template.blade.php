@@ -76,7 +76,7 @@
 
         .signature p {
             margin: 0;
-            line-height: 1.2;
+            line-height: 1;
         }
 
         th.underline {
@@ -110,7 +110,7 @@
     </table>
 
     {{-- TRAVELERS --}}
-    <p class="mt-3 bold" style="padding-bottom: 15px;">Authority to Travel is hereby granted to:</p>
+    <p class="mt-3 bold" style="padding-bottom: 5px;">Authority to Travel is hereby granted to:</p>
     @php
         // Normalize traveler data (array of { name, position, agency })
         $travelers = $travelOrder->name;
@@ -228,9 +228,9 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 </span>
                 Project Funds
                 @if (!empty($travelOrder->fund_details) && str_contains(strtolower($fundSource), 'project'))
-                    <div style="margin-top: 3px; font-size: 9pt; text-align: center;">
+                    <div style="margin:0px; font-size: 9pt; text-align: center;">
                         {{-- <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong> --}}
-                        <strong>{{ strtoupper($fundDetails) }}</strong>
+                        <strong>({{ strtoupper(trim($fundDetails)) }})</strong>
                     </div>
                 @endif
             </td>
@@ -242,9 +242,9 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 </span>
                 Others
                 @if (!empty($travelOrder->fund_details) && str_contains(strtolower($fundSource), 'other'))
-                    <div style="margin-top: 3px; font-size: 9pt; text-align: center;">
+                    <div style="margin:0px; font-size: 9pt; text-align: center;">
                         {{-- <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong> --}}
-                        <strong>{{ strtoupper($fundDetails) }}</strong>
+                        <strong>({{ strtoupper(trim($fundDetails)) }})</strong>
                     </div>
                 @endif
             </td>

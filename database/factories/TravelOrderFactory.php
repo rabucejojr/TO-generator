@@ -5,9 +5,6 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\TravelOrder;
 
-/**
- * @extends Factory<\App\Models\TravelOrder>
- */
 class TravelOrderFactory extends Factory
 {
     public function definition(): array
@@ -16,6 +13,7 @@ class TravelOrderFactory extends Factory
         $isOutside = $this->faker->boolean(50);
         $scope = $isOutside ? 'outside' : 'within';
 
+        // Randomize destination based on scope
         $destination = $isOutside
             ? $this->faker->city() . ', Agusan del Norte'
             : $this->faker->city() . ', Surigao del Norte';
@@ -33,7 +31,7 @@ class TravelOrderFactory extends Factory
             'Carlo Mendoza',
         ];
 
-        // Randomly pick 1 or 2 travelers
+        // Randomly pick 1–2 travelers
         $selectedTravelers = collect($names)
             ->shuffle()
             ->take(rand(1, 2))
@@ -53,7 +51,7 @@ class TravelOrderFactory extends Factory
         // Random boolean helper (70% true)
         $b = fn() => $this->faker->boolean(70);
 
-        // Random expense categories
+        // Expense categories
         $categories = [
             'actual' => [
                 'enabled' => $b(),
@@ -78,7 +76,7 @@ class TravelOrderFactory extends Factory
             'others_enabled' => $b(),
         ];
 
-        // Random fund source
+        // Fund Source logic
         $fundSources = ['General Fund', 'Project Funds', 'Others'];
         $fundSource = $this->faker->randomElement($fundSources);
         $fundDetails = '';
@@ -89,39 +87,20 @@ class TravelOrderFactory extends Factory
             $fundDetails = $this->faker->randomElement(['LGU Counterpart', 'Private Sponsorship', 'Personal Contribution']);
         }
 
-        // Set current series (year)
-        $series = now()->year;
-
-        // ✅ Generate Travel Order Number (only for "within")
-        $travelOrderNo = null;
-        if ($scope === 'within') {
-            $latest = TravelOrder::whereNotNull('travel_order_no')
-                ->where('travel_order_no', 'like', "{$series}-%")
-                ->latest('id')
-                ->value('travel_order_no');
-
-            $next = 1;
-            if ($latest && preg_match('/(\d{4})$/', $latest, $matches)) {
-                $next = intval($matches[1]) + 1;
-            }
-
-            $travelOrderNo = sprintf('%s-SDN-%04d', $series, $next);
-        }
-
-        // ✅ Apply signatories dynamically
+        // Signatories
         $approvedBy = 'MR. RICARDO N. VARELA';
         $approvedPosition = 'OIC, PSTO-SDN';
         $regionalDirector = $scope === 'outside' ? 'ENGR. NOEL M. AJOC' : null;
         $regionalPosition = $scope === 'outside' ? 'Regional Director' : null;
 
         return [
-            'travel_order_no' => $travelOrderNo,
+            // 🚫 travel_order_no is auto-generated in the model
             'filing_date' => $this->faker->date(),
-            'series' => $series,
+            'series' => now()->year,
             'scope' => $scope,
             'name' => $selectedTravelers,
             'destination' => $destination,
-            'inclusive_dates' => 'November ' . $this->faker->numberBetween(1, 5) . ', ' . $series,
+            'inclusive_dates' => 'November ' . $this->faker->numberBetween(1, 5) . ', ' . now()->year,
             'purpose' => 'To conduct project monitoring and coordination with local government partners.',
             'fund_source' => $fundSource,
             'fund_details' => $fundDetails,
