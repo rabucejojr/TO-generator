@@ -229,7 +229,6 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 Project Funds
                 @if (!empty($travelOrder->fund_details) && str_contains(strtolower($fundSource), 'project'))
                     <div style="margin:0px; font-size: 9pt; text-align: center;">
-                        {{-- <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong> --}}
                         <strong>({{ strtoupper(trim($fundDetails)) }})</strong>
                     </div>
                 @endif
@@ -243,13 +242,11 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 Others
                 @if (!empty($travelOrder->fund_details) && str_contains(strtolower($fundSource), 'other'))
                     <div style="margin:0px; font-size: 9pt; text-align: center;">
-                        {{-- <strong>{{ strtoupper(trim($travelOrder->fund_details)) }}</strong> --}}
                         <strong>({{ strtoupper(trim($fundDetails)) }})</strong>
                     </div>
                 @endif
             </td>
         </tr>
-
 
         {{-- ACTUAL EXPENSES --}}
         <tr>
@@ -327,7 +324,6 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
         </tr>
 
         @php
-            // Fetch transport data from categories
             $transportText = data_get($travelOrder->expenses, 'categories.transportation.public_conveyance_text');
             $transportItems = [
                 'official_vehicle' => 'Official Vehicle',
@@ -339,7 +335,6 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             <tr>
                 <td class="no-border subitem">
                     {{ $label }}
-                    {{-- Append transport text if available --}}
                     @if ($key === 'public_conveyance' && !empty($transportText))
                         ({{ $transportText }})
                     @endif
@@ -354,7 +349,6 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
             </tr>
         @endforeach
 
-
         {{-- OTHERS --}}
         <tr>
             <td class="no-border">
@@ -363,7 +357,6 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 </span>
                 Others
             </td>
-
             @foreach (['general', 'project', 'others'] as $fundType)
                 <td class="no-border cell-center">
                     <span class="cell-line">
@@ -372,18 +365,31 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
                 </td>
             @endforeach
         </tr>
+
+        {{-- REMARKS SECTION (aligned neatly with expense lines) --}}
+        <tr>
+            {{-- Label --}}
+            <td class="no-border bold" style="padding-top:10px; vertical-align: top;">
+                Remarks / Special Instructions:
+            </td>
+
+            {{-- Underline or remarks text --}}
+            <td class="no-border" colspan="3" style="padding-top:10px;">
+                @if (!empty($travelOrder->remarks))
+                    <span style="font-weight: normal; padding-left:10px;">
+                        {{ $travelOrder->remarks }}
+                    </span>
+                @else
+                    {{-- Slight padding to align neatly under first column text --}}
+                    <span
+                        style="padding-left:10px; display:inline-block; width:96%; border-bottom:1px solid #000; vertical-align:bottom;">
+                        &nbsp;
+                    </span>
+                @endif
+            </td>
+        </tr>
+
     </table>
-
-
-    {{-- REMARKS --}}
-    <p class="mt-3 bold">
-        Remarks / Special Instructions:
-        @if (!empty($travelOrder->remarks))
-            {{ $travelOrder->remarks }}
-        @else
-            <span style="display:inline-block; min-width: 450px; border-bottom: 1px solid #000;">&nbsp;</span>
-        @endif
-    </p>
 
     <p class="text-justify">
         A report of your travel must be submitted to the Agency Head/Supervising Official within 7 days of completion of
