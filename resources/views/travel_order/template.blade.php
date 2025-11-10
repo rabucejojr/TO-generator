@@ -391,7 +391,7 @@ $normalizedTravelers = collect($travelers)->map(function ($t) {
 
     </table>
 
-    <p class="text-justify">
+    <p class="text-justify" style="margin: 0; padding: 0;">
         A report of your travel must be submitted to the Agency Head/Supervising Official within 7 days of completion of
         travel, liquidation of cash advance should be in accordance with Executive Order No. 77, series of 2019: Prescribing
         Rules and Regulations, and Rates of Expenses and Allowances for Official Local and Foreign Travels of Government
