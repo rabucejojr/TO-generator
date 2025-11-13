@@ -24,7 +24,7 @@ class TravelOrderController extends Controller
     {
         // return view('travel_order.create');
         $travelOrder = new TravelOrder(); // empty model instance
-        return view('travel_order.create', compact('travelOrder'));
+        return view('travel_order.create');
     }
 
     /**
