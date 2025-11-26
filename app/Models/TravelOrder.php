@@ -107,12 +107,12 @@ class TravelOrder extends Model
         $isOutside = $this->scope === 'outside';
 
         if ($isOutside) {
-            $this->approved_by = 'MR. RICARDO N. VARELA';
+            $this->approved_by = 'RICARDO N. VARELA';
             $this->approved_position = 'OIC, PSTO-SDN';
             $this->regional_director = 'ENGR. NOEL M. AJOC';
             $this->regional_position = 'Regional Director';
         } else {
-            $this->approved_by = 'MR. RICARDO N. VARELA';
+            $this->approved_by = 'RICARDO N. VARELA';
             $this->approved_position = 'OIC, PSTO-SDN';
             $this->regional_director = null;
             $this->regional_position = null;
